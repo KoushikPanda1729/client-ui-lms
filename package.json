@@ -6,9 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "format": "prettier --write .",
+    "lint:check": "eslint .",
+    "lint:fix": "eslint --fix .",
     "format:check": "prettier --check .",
+    "format:fix": "prettier --write .",
     "prepare": "husky"
   },
   "lint-staged": {
