@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { ConfigProvider } from "antd";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import { AuthProvider } from "@/contexts/AuthContext";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,19 +26,21 @@ export default function RootLayout({
   return (
     <html lang="en" style={{ colorScheme: "light" }} data-theme="light">
       <body className={`${inter.variable} antialiased`}>
-        <AntdRegistry>
-          <ConfigProvider
-            theme={{
-              token: {
-                colorPrimary: "#6366f1",
-                borderRadius: 10,
-                fontFamily: "var(--font-inter), system-ui, -apple-system, sans-serif",
-              },
-            }}
-          >
-            {children}
-          </ConfigProvider>
-        </AntdRegistry>
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}>
+          <AntdRegistry>
+            <ConfigProvider
+              theme={{
+                token: {
+                  colorPrimary: "#6366f1",
+                  borderRadius: 10,
+                  fontFamily: "var(--font-inter), system-ui, -apple-system, sans-serif",
+                },
+              }}
+            >
+              <AuthProvider>{children}</AuthProvider>
+            </ConfigProvider>
+          </AntdRegistry>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

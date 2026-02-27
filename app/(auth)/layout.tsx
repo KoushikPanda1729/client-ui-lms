@@ -1,7 +1,40 @@
-import React from "react";
-import Link from "next/link";
+"use client";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+import React, { useEffect } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Spin } from "antd";
+import { useAuth } from "@/contexts/AuthContext";
+
+function AuthLayoutInner({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (!loading && user) {
+      const redirect = searchParams.get("redirect") || "/dashboard";
+      router.replace(redirect);
+    }
+  }, [user, loading, router, searchParams]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (user) {
+    // While redirecting, show spinner
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen">
       {/* Left — Branding panel */}
@@ -77,5 +110,21 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="w-full max-w-[420px]">{children}</div>
       </div>
     </div>
+  );
+}
+
+import { Suspense } from "react";
+
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <Spin size="large" />
+        </div>
+      }
+    >
+      <AuthLayoutInner>{children}</AuthLayoutInner>
+    </Suspense>
   );
 }

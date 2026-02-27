@@ -1,11 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useState, Suspense } from "react";
 import Link from "next/link";
-import { Button, Checkbox, Divider, Form, Input } from "antd";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button, Checkbox, Divider, Form, Input, message, Spin } from "antd";
 import { LockOutlined, MailOutlined, UserOutlined } from "@ant-design/icons";
+import { GoogleLogin } from "@react-oauth/google";
+import { authService } from "@/lib/services/auth";
+import { useAuth } from "@/contexts/AuthContext";
 
-/* Real Google "G" icon as inline SVG */
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 48 48" className="mr-2">
@@ -29,9 +32,66 @@ function GoogleIcon() {
   );
 }
 
-export default function RegisterPage() {
+function RegisterContent() {
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+  const { setUser } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+
+  const handleRegister = async (values: {
+    name: string;
+    email: string;
+    password: string;
+    terms: boolean;
+  }) => {
+    setLoading(true);
+    try {
+      const user = await authService.register(values.name, values.email, values.password);
+      setUser(user);
+      router.replace(redirectTo);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Registration failed";
+      messageApi.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (idToken: string) => {
+    setGoogleLoading(true);
+    try {
+      const user = await authService.googleSignIn(idToken);
+      setUser(user);
+      router.replace(redirectTo);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Google sign-in failed";
+      messageApi.error(msg);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const triggerGoogleLogin = () => {
+    const btn = googleBtnRef.current?.querySelector<HTMLElement>('[role="button"]');
+    if (btn) {
+      btn.click();
+    } else {
+      messageApi.error("Google Sign-In not ready, please try again");
+    }
+  };
+
   return (
     <>
+      {contextHolder}
+
       {/* Mobile logo */}
       <div className="mb-8 text-center lg:hidden">
         <Link href="/" className="inline-flex items-center gap-2 no-underline">
@@ -48,19 +108,40 @@ export default function RegisterPage() {
         <h1 className="mb-1 text-2xl font-bold text-zinc-900">Create your account</h1>
         <p className="mb-7 text-sm text-zinc-500">Start learning English for free today</p>
 
+        {/* Hidden GoogleLogin button */}
+        <div
+          ref={googleBtnRef}
+          style={{ position: "absolute", opacity: 0, height: 0, overflow: "hidden" }}
+        >
+          <GoogleLogin
+            onSuccess={(credentialResponse) => {
+              if (credentialResponse.credential) {
+                handleGoogleSuccess(credentialResponse.credential);
+              }
+            }}
+            onError={() => messageApi.error("Google sign-in failed")}
+          />
+        </div>
+
         {/* Google button */}
         <button
           type="button"
-          className="flex h-11 w-full items-center justify-center rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:shadow-md"
+          disabled={googleLoading}
+          onClick={triggerGoogleLogin}
+          className="flex h-11 w-full items-center justify-center rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:shadow-md disabled:opacity-60"
         >
-          <GoogleIcon />
+          {googleLoading ? (
+            <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700" />
+          ) : (
+            <GoogleIcon />
+          )}
           Continue with Google
         </button>
 
         <Divider className="text-xs text-zinc-400">or</Divider>
 
         {/* Register form */}
-        <Form layout="vertical" size="large" requiredMark={false}>
+        <Form layout="vertical" size="large" requiredMark={false} onFinish={handleRegister}>
           <Form.Item
             label={<span className="text-sm font-medium text-zinc-700">Full Name</span>}
             name="name"
@@ -122,6 +203,7 @@ export default function RegisterPage() {
             htmlType="submit"
             block
             size="large"
+            loading={loading}
             className="h-11 rounded-xl text-sm font-semibold shadow-lg shadow-indigo-500/25"
           >
             Create Account
@@ -139,5 +221,19 @@ export default function RegisterPage() {
         </p>
       </div>
     </>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[400px] items-center justify-center">
+          <Spin size="large" />
+        </div>
+      }
+    >
+      <RegisterContent />
+    </Suspense>
   );
 }
