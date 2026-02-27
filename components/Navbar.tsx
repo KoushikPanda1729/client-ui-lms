@@ -10,6 +10,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   DashboardOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -42,6 +43,12 @@ export default function Navbar() {
       icon: <DashboardOutlined />,
       label: "Dashboard",
       onClick: () => router.push("/dashboard"),
+    },
+    {
+      key: "settings",
+      icon: <SettingOutlined />,
+      label: "Profile Settings",
+      onClick: () => router.push("/settings"),
     },
     { type: "divider" as const },
     {
@@ -169,6 +176,13 @@ export default function Navbar() {
                   className="rounded-lg px-4 py-3 text-sm font-medium text-zinc-700 no-underline hover:bg-zinc-100"
                 >
                   Dashboard
+                </Link>
+                <Link
+                  href="/settings"
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-lg px-4 py-3 text-sm font-medium text-zinc-700 no-underline hover:bg-zinc-100"
+                >
+                  Profile Settings
                 </Link>
                 <button
                   onClick={() => {
