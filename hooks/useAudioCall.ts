@@ -13,6 +13,14 @@ export interface PartnerInfo {
   level?: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  text: string;
+  fromMe: boolean;
+  senderName: string;
+  timestamp: number;
+}
+
 interface MatchFoundPayload {
   roomId: string;
   partner: PartnerInfo;
@@ -43,6 +51,8 @@ export function useAudioCall() {
   const [muted, setMuted] = useState(false);
   const [duration, setDuration] = useState(0);
   const [audioBlocked, setAudioBlocked] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [speakerOn, setSpeakerOn] = useState(true);
 
   const socketRef = useRef<Socket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -50,6 +60,7 @@ export function useAudioCall() {
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const roomIdRef = useRef<string | null>(null);
   const iceServersRef = useRef<RTCIceServer[]>(FALLBACK_ICE);
+  const partnerRef = useRef<PartnerInfo | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
   // Resolves when local mic stream is added to the PC — receiver waits on this
@@ -181,6 +192,7 @@ export function useAudioCall() {
         const { roomId, partner: p, iceServers } = payload;
         roomIdRef.current = roomId;
         iceServersRef.current = iceServers?.length ? iceServers : FALLBACK_ICE;
+        partnerRef.current = p;
         setPartner(p);
         setPhase("matched");
         socket.emit("join_room", { roomId });
@@ -304,6 +316,20 @@ export function useAudioCall() {
         disconnectSocket();
         socketRef.current = null;
       });
+
+      // Chat messages relayed from peer
+      socket.on("chat_message", (payload: { messageId: string; text: string }) => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: payload.messageId,
+            text: payload.text,
+            fromMe: false,
+            senderName: partnerRef.current?.displayName || "Partner",
+            timestamp: Date.now(),
+          },
+        ]);
+      });
     },
     [
       createPeerConnection,
@@ -335,6 +361,8 @@ export function useAudioCall() {
       socket.off("peer_left");
       socket.off("error");
       socket.off("connect_error");
+      socket.off("chat_message");
+      setMessages([]);
 
       setupSocketEvents(socket);
 
@@ -362,6 +390,7 @@ export function useAudioCall() {
     }
     fullCleanup();
     setPhase("idle");
+    partnerRef.current = null;
     setPartner(null);
   }, [fullCleanup]);
 
@@ -385,6 +414,33 @@ export function useAudioCall() {
       .catch(() => null);
   }, []);
 
+  const toggleSpeaker = useCallback(() => {
+    setSpeakerOn((prev) => {
+      const next = !prev;
+      const audio = remoteAudioRef.current;
+      if (audio) {
+        audio.muted = !next;
+        if (next && audio.paused) {
+          audio.play().catch(() => {});
+        }
+      }
+      return next;
+    });
+    setAudioBlocked(false);
+  }, []);
+
+  const sendMessage = useCallback((text: string) => {
+    const socket = socketRef.current;
+    const roomId = roomIdRef.current;
+    if (!socket || !roomId || !text.trim()) return;
+    const messageId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    socket.emit("chat_message", { roomId, text: text.trim(), messageId });
+    setMessages((prev) => [
+      ...prev,
+      { id: messageId, text: text.trim(), fromMe: true, senderName: "You", timestamp: Date.now() },
+    ]);
+  }, []);
+
   return {
     phase,
     partner,
@@ -392,10 +448,14 @@ export function useAudioCall() {
     muted,
     duration,
     audioBlocked,
+    messages,
+    speakerOn,
     startSearch,
     cancelSearch,
     endCall,
     toggleMute,
     resumeAudio,
+    toggleSpeaker,
+    sendMessage,
   };
 }
