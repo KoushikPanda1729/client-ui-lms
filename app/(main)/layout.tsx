@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Spin } from "antd";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import SupportWidget from "@/components/SupportWidget";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -40,6 +41,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <Navbar />
       <main className="min-h-screen bg-white pt-16">{children}</main>
       <Footer />
+      <SupportWidget />
     </>
   );
 }
