@@ -320,11 +320,7 @@ export function useAudioCall() {
 
       // Server error
       socket.on("error", (err: { code: string; message: string }) => {
-        if (err.code === "PROFILE_INCOMPLETE") {
-          setErrorMsg("Please set your username and English level in your profile first.");
-        } else {
-          setErrorMsg(err.message || "Something went wrong");
-        }
+        setErrorMsg(err.message || "Something went wrong");
         setPhase("ended");
         fullCleanup();
       });
