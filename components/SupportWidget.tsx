@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { SendOutlined, CloseOutlined, CustomerServiceOutlined } from "@ant-design/icons";
 import { useSupportChat, type MsgStatus } from "@/hooks/useSupportChat";
+import { useCall } from "@/contexts/CallContext";
 
 // ── Tick marks (WhatsApp-style) ──────────────────────────────────────────────
 // Single grey ✓  = sent to server
@@ -47,6 +48,7 @@ function TypingDots() {
 // ── Main widget ──────────────────────────────────────────────────────────────
 
 export default function SupportWidget() {
+  const { callActive } = useCall();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -94,6 +96,8 @@ export default function SupportWidget() {
     setInput(e.target.value);
     if (e.target.value.trim()) emitTyping();
   };
+
+  if (callActive) return null;
 
   return (
     <>

@@ -16,8 +16,10 @@ import {
   SendOutlined,
   MessageOutlined,
   VideoCameraOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 import { useAudioCall } from "@/hooks/useAudioCall";
+import { useCall } from "@/contexts/CallContext";
 
 /* ══════════════════════════════════════════
    Format seconds → MM:SS
@@ -59,6 +61,10 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
   const [chatOpen, setChatOpen] = useState(false);
   const [videoRequestDismissed, setVideoRequestDismissed] = useState(false);
   const [prevRemoteVideoEnabled, setPrevRemoteVideoEnabled] = useState(false);
+  // swapped: when true, local feed is the BG and remote feed is the PiP
+  const [swapped, setSwapped] = useState(false);
+  // null = default top-right corner; {x,y} = dragged absolute position
+  const [pipPos, setPipPos] = useState<{ x: number; y: number } | null>(null);
 
   // During-render derived state update (React docs recommended pattern — no effect needed)
   // When partner freshly enables camera, reset the dismissed flag
@@ -67,8 +73,16 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
     if (remoteVideoEnabled) setVideoRequestDismissed(false);
   }
   const chatScrollRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const pipDragState = useRef<{
+    startPointerX: number;
+    startPointerY: number;
+    startElemX: number;
+    startElemY: number;
+    moved: boolean;
+  } | null>(null);
 
   // Start searching when modal opens
   useEffect(() => {
@@ -82,19 +96,29 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
     }
   }, [messages, chatOpen]);
 
-  // Sync local video stream → <video> element
+  // Sync video streams → elements (swap-aware)
+  // PiP slot (localVideoRef):  local stream normally, remote stream when swapped
+  // BG  slot (remoteVideoRef): remote stream normally, local stream when swapped
   useEffect(() => {
     if (localVideoRef.current) {
-      localVideoRef.current.srcObject = videoEnabled ? localVideoStreamRef.current : null;
+      localVideoRef.current.srcObject = swapped
+        ? remoteVideoEnabled
+          ? remoteVideoStreamRef.current
+          : null
+        : videoEnabled
+          ? localVideoStreamRef.current
+          : null;
     }
-  }, [videoEnabled, localVideoStreamRef]);
-
-  // Sync remote video stream → <video> element
-  useEffect(() => {
     if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = remoteVideoEnabled ? remoteVideoStreamRef.current : null;
+      remoteVideoRef.current.srcObject = swapped
+        ? videoEnabled
+          ? localVideoStreamRef.current
+          : null
+        : remoteVideoEnabled
+          ? remoteVideoStreamRef.current
+          : null;
     }
-  }, [remoteVideoEnabled, remoteVideoStreamRef]);
+  }, [videoEnabled, remoteVideoEnabled, localVideoStreamRef, remoteVideoStreamRef, swapped]);
 
   const handleEndOrCancel = () => {
     if (phase === "searching" || phase === "matched") cancelSearch();
@@ -158,27 +182,101 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
 
       {/* ══ CONNECTING / CONNECTED ══ */}
       {(phase === "connecting" || phase === "connected") && partner && (
-        <>
-          {/* ── Top bar: status + partner info ── */}
-          <div className="flex flex-col items-center px-6 pt-12 pb-4 text-center">
-            <div className="mb-2 flex items-center gap-1.5">
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  phase === "connected"
-                    ? "animate-pulse bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]"
-                    : "bg-yellow-400"
-                }`}
+        <div ref={containerRef} className="absolute inset-0">
+          {/* ── Layer 0: full-screen background ── */}
+          {showVideo ? (
+            <>
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="absolute inset-0 h-full w-full bg-black object-cover"
               />
-              <p className="text-xs font-semibold tracking-widest text-white/50 uppercase">
-                {phase === "connected" ? "Connected" : "Connecting..."}
-              </p>
+              {(swapped ? !videoEnabled : !remoteVideoEnabled) && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
+                  {partner.avatarUrl ? (
+                    <Image
+                      src={partner.avatarUrl}
+                      alt={partner.displayName}
+                      width={96}
+                      height={96}
+                      className="mb-2 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="mb-2 flex h-24 w-24 items-center justify-center rounded-full bg-white/10 text-5xl">
+                      👤
+                    </div>
+                  )}
+                  <p className="text-sm text-white/40">Camera off</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-8">
+              <div className="relative h-44 w-44">
+                {phase === "connected" && (
+                  <>
+                    <span className="absolute -inset-5 animate-ping rounded-full bg-indigo-500/10 [animation-duration:3s]" />
+                    <span className="absolute -inset-2.5 animate-ping rounded-full bg-indigo-500/15 [animation-delay:0.6s] [animation-duration:2.5s]" />
+                  </>
+                )}
+                <div className="relative h-full w-full overflow-hidden rounded-full bg-white/10 shadow-2xl ring-[3px] shadow-indigo-900/40 ring-white/20">
+                  {partner.avatarUrl ? (
+                    <Image
+                      src={partner.avatarUrl}
+                      alt={partner.displayName}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-7xl">
+                      👤
+                    </div>
+                  )}
+                </div>
+                {phase === "connected" && (
+                  <span className="absolute right-2.5 bottom-2.5 h-5 w-5 rounded-full border-[3px] border-[#0a0a18] bg-emerald-400 shadow-lg shadow-emerald-500/50" />
+                )}
+              </div>
+              {phase === "connected" && (
+                <div className="flex h-10 items-end justify-center gap-0.75">
+                  {Array.from({ length: 26 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className="w-0.75 rounded-full"
+                      style={{
+                        height: `${12 + Math.sin(i * 0.75) * 10}px`,
+                        background: `rgba(255,255,255,${0.18 + Math.sin(i * 0.5) * 0.15})`,
+                        animation: `waveBar 1.4s ease-in-out ${(i * 0.055) % 0.7}s infinite alternate`,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-            <p className="text-[22px] leading-tight font-bold text-white">{partner.displayName}</p>
+          )}
+
+          {/* ── Layer 1: top info ── */}
+          <div className="pointer-events-none absolute top-0 right-0 left-0 z-20 bg-linear-to-b from-black/70 via-black/25 to-transparent px-4 pt-8 pb-16 text-center">
+            {/* Status pill */}
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1 ring-1 ring-white/10 backdrop-blur-sm">
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${phase === "connected" ? "animate-pulse bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.7)]" : "bg-yellow-400"}`}
+              />
+              <span className="text-[10px] font-semibold tracking-widest text-white/70 uppercase">
+                {phase === "connected" ? "Connected" : "Connecting..."}
+              </span>
+            </div>
+            {/* Name */}
+            <p className="text-xl leading-tight font-bold text-white drop-shadow-lg sm:text-2xl">
+              {partner.displayName}
+            </p>
             {partner.level && (
-              <p className="mt-1 text-sm text-white/35 capitalize">{partner.level} Level</p>
+              <p className="mt-0.5 text-xs text-white/50 capitalize">{partner.level} Level</p>
             )}
+            {/* Timer */}
             {phase === "connected" && (
-              <div className="mt-3 flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 ring-1 ring-white/10">
+              <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-black/35 px-3.5 py-1 ring-1 ring-white/10 backdrop-blur-sm">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
                 <span className="font-mono text-sm font-bold text-white tabular-nums">
                   {formatDuration(duration)}
@@ -187,307 +285,315 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
             )}
           </div>
 
-          {/* ── Middle: avatar (audio) or video ── */}
-          <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-            {showVideo ? (
-              // ── Video layout ──
-              <>
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
-                  className="absolute inset-0 h-full w-full bg-black object-contain"
-                />
-                {/* Fallback: partner hasn't enabled video yet */}
-                {!remoteVideoEnabled && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
-                    {partner.avatarUrl ? (
-                      <Image
-                        src={partner.avatarUrl}
-                        alt={partner.displayName}
-                        width={96}
-                        height={96}
-                        className="mb-2 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="mb-2 flex h-24 w-24 items-center justify-center rounded-full bg-white/10 text-5xl">
-                        👤
-                      </div>
-                    )}
-                    <p className="text-sm text-white/40">Camera off</p>
-                  </div>
-                )}
-                {/* Local preview (picture-in-picture) */}
-                {videoEnabled && (
-                  <div className="absolute right-4 bottom-4 h-28 w-20 overflow-hidden rounded-2xl border border-white/20 shadow-xl">
-                    <video
-                      ref={localVideoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                )}
-              </>
-            ) : (
-              // ── Audio layout: large avatar + waveform ──
-              <div className="flex flex-col items-center gap-8">
-                <div className="relative h-44 w-44">
-                  {phase === "connected" && (
-                    <>
-                      <span className="absolute inset-[-20px] animate-ping rounded-full bg-indigo-500/10 [animation-duration:3s]" />
-                      <span className="absolute inset-[-10px] animate-ping rounded-full bg-indigo-500/15 [animation-delay:0.6s] [animation-duration:2.5s]" />
-                    </>
-                  )}
-                  <div className="relative h-full w-full overflow-hidden rounded-full bg-white/10 shadow-2xl ring-[3px] shadow-indigo-900/40 ring-white/20">
-                    {partner.avatarUrl ? (
-                      <Image
-                        src={partner.avatarUrl}
-                        alt={partner.displayName}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-7xl">
-                        👤
-                      </div>
-                    )}
-                  </div>
-                  {phase === "connected" && (
-                    <span className="absolute right-2.5 bottom-2.5 h-5 w-5 rounded-full border-[3px] border-[#0a0a18] bg-emerald-400 shadow-lg shadow-emerald-500/50" />
-                  )}
-                </div>
-
-                {/* Waveform bars */}
-                {phase === "connected" && (
-                  <div className="flex h-10 items-end justify-center gap-[3px]">
-                    {Array.from({ length: 26 }).map((_, i) => (
-                      <span
-                        key={i}
-                        className="w-[3px] rounded-full"
-                        style={{
-                          height: `${12 + Math.sin(i * 0.75) * 10}px`,
-                          background: `rgba(255,255,255,${0.18 + Math.sin(i * 0.5) * 0.15})`,
-                          animation: `waveBar 1.4s ease-in-out ${(i * 0.055) % 0.7}s infinite alternate`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
+          {/* ── Layer 2: PiP – draggable + tap to swap ── */}
+          {(swapped ? remoteVideoEnabled : videoEnabled) && (
+            <div
+              className="absolute z-30 h-36 w-24 cursor-pointer touch-none overflow-hidden rounded-2xl border border-white/25 shadow-2xl ring-1 ring-black/20 select-none sm:h-44 sm:w-32"
+              style={pipPos ? { left: pipPos.x, top: pipPos.y } : { top: 80, right: 16 }}
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                const rect = containerRef.current?.getBoundingClientRect();
+                if (!rect) return;
+                const PIP_W = 96,
+                  PIP_H = 144;
+                pipDragState.current = {
+                  startPointerX: e.clientX,
+                  startPointerY: e.clientY,
+                  startElemX: pipPos?.x ?? rect.width - PIP_W - 16,
+                  startElemY: pipPos?.y ?? 80,
+                  moved: false,
+                };
+              }}
+              onPointerMove={(e) => {
+                const s = pipDragState.current;
+                if (!s) return;
+                const dx = e.clientX - s.startPointerX;
+                const dy = e.clientY - s.startPointerY;
+                if (!s.moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) s.moved = true;
+                if (!s.moved) return;
+                const rect = containerRef.current?.getBoundingClientRect();
+                if (!rect) return;
+                const PIP_W = 96,
+                  PIP_H = 144;
+                setPipPos({
+                  x: Math.max(8, Math.min(s.startElemX + dx, rect.width - PIP_W - 8)),
+                  y: Math.max(8, Math.min(s.startElemY + dy, rect.height - PIP_H - 8)),
+                });
+              }}
+              onPointerUp={() => {
+                const s = pipDragState.current;
+                pipDragState.current = null;
+                if (s && !s.moved) setSwapped((v) => !v);
+              }}
+            >
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="h-full w-full object-cover"
+              />
+              {/* Tap-to-swap hint */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/0 opacity-0 transition-all duration-200 hover:bg-black/35 hover:opacity-100">
+                <span className="text-lg text-white drop-shadow">⇄</span>
+                <span className="text-[9px] font-semibold tracking-wide text-white/80 uppercase">
+                  Swap
+                </span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* ── WhatsApp-style video request overlay ── */}
+          {/* ── Layer 3: video-request card ── */}
           {phase === "connected" &&
             remoteVideoEnabled &&
             !videoEnabled &&
             !videoRequestDismissed && (
               <div
-                className="mx-5 mb-3 overflow-hidden rounded-2xl backdrop-blur-md"
+                className="pointer-events-auto absolute top-1/2 left-1/2 z-40 w-72 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl backdrop-blur-xl"
                 style={{
-                  background: "rgba(20,20,45,0.85)",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(15,15,35,0.92)",
+                  border: "1px solid rgba(255,255,255,0.12)",
                 }}
               >
                 <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-                  {/* Avatar / camera icon */}
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500/20">
-                    <VideoCameraOutlined className="text-lg text-emerald-400" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/20">
+                    <VideoCameraOutlined className="text-base text-emerald-400" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-tight font-semibold text-white">
-                      {partner?.displayName}
-                    </p>
-                    <p className="mt-0.5 text-xs text-white/45">wants to switch to video</p>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{partner?.displayName}</p>
+                    <p className="text-xs text-white/45">wants to switch to video</p>
                   </div>
                 </div>
                 <div className="flex border-t border-white/10">
-                  {/* Decline */}
                   <button
                     onClick={() => setVideoRequestDismissed(true)}
-                    className="flex flex-1 items-center justify-center gap-2 border-r border-white/10 py-3 text-sm font-semibold text-red-400 transition hover:bg-white/5 active:scale-95"
+                    className="flex flex-1 items-center justify-center border-r border-white/10 py-3 text-sm font-semibold text-red-400 transition hover:bg-white/5 active:scale-95"
                   >
                     Decline
                   </button>
-                  {/* Accept */}
                   <button
                     onClick={() => {
                       toggleVideo();
                       setVideoRequestDismissed(true);
                     }}
-                    className="flex flex-1 items-center justify-center gap-2 py-3 text-sm font-semibold text-emerald-400 transition hover:bg-white/5 active:scale-95"
+                    className="flex flex-1 items-center justify-center gap-1.5 py-3 text-sm font-semibold text-emerald-400 transition hover:bg-white/5 active:scale-95"
                   >
-                    <VideoCameraOutlined className="text-base" />
-                    Accept
+                    <VideoCameraOutlined className="text-sm" /> Accept
                   </button>
                 </div>
               </div>
             )}
 
-          {/* ── Chat slide-up panel ── */}
+          {/* ── Layer 4: chat sidebar (slides in from right) ── */}
           {phase === "connected" && (
-            <div
-              className={`overflow-hidden border-t transition-all duration-300 ease-in-out ${
-                chatOpen
-                  ? "max-h-72 border-white/[0.08] opacity-100"
-                  : "max-h-0 border-transparent opacity-0"
-              }`}
-              style={{ background: "rgba(5,5,20,0.75)" }}
-            >
-              {/* Messages list */}
+            <>
+              {/* Backdrop dim on mobile */}
+              {chatOpen && (
+                <div
+                  className="pointer-events-auto absolute inset-0 z-30 bg-black/40 sm:hidden"
+                  onClick={() => setChatOpen(false)}
+                />
+              )}
+
               <div
-                ref={chatScrollRef}
-                className="h-44 space-y-3 overflow-y-auto px-4 pt-4 pb-2 text-left"
+                className={`pointer-events-auto absolute top-0 right-0 bottom-0 z-40 flex w-[78vw] max-w-xs flex-col transition-transform duration-300 ease-in-out sm:w-80 ${chatOpen ? "translate-x-0" : "translate-x-full"}`}
+                style={{
+                  background: "rgba(6,6,20,0.88)",
+                  backdropFilter: "blur(24px)",
+                  borderLeft: "1px solid rgba(255,255,255,0.08)",
+                }}
               >
-                {messages.length === 0 ? (
-                  <p className="pt-8 text-center text-xs text-white/25">
-                    Say something to your partner...
-                  </p>
-                ) : (
-                  messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.fromMe ? "justify-end" : "justify-start"}`}
-                    >
+                {/* Header */}
+                <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500/20">
+                      <MessageOutlined className="text-xs text-indigo-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm leading-none font-semibold text-white">In-call Chat</p>
+                      {partner && (
+                        <p className="mt-0.5 text-[10px] text-white/35">{partner.displayName}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setChatOpen(false)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white/8 transition hover:bg-white/15 active:scale-90"
+                  >
+                    <CloseOutlined className="text-xs text-white/60" />
+                  </button>
+                </div>
+
+                {/* Messages */}
+                <div
+                  ref={chatScrollRef}
+                  className="flex-1 space-y-3 overflow-y-auto px-4 py-4"
+                  style={{ scrollbarWidth: "none" }}
+                >
+                  {messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center gap-3 pt-12 text-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/8 text-2xl">
+                        💬
+                      </div>
+                      <p className="text-xs leading-relaxed text-white/30">
+                        No messages yet.
+                        <br />
+                        Say something to your partner!
+                      </p>
+                    </div>
+                  ) : (
+                    messages.map((msg) => (
                       <div
-                        className={`max-w-[78%] px-3.5 py-2 text-sm leading-snug ${
-                          msg.fromMe
-                            ? "rounded-2xl rounded-br-[4px] bg-indigo-500 font-medium text-white"
-                            : "rounded-2xl rounded-bl-[4px] bg-white/15 text-white"
-                        }`}
+                        key={msg.id}
+                        className={`flex flex-col gap-0.5 ${msg.fromMe ? "items-end" : "items-start"}`}
                       >
                         {!msg.fromMe && (
-                          <p className="mb-0.5 text-[10px] font-bold text-indigo-300">
+                          <p className="ml-1 text-[10px] font-semibold text-indigo-300">
                             {msg.senderName}
                           </p>
                         )}
-                        <p>{msg.text}</p>
+                        <div
+                          className={`max-w-[88%] px-3.5 py-2.5 text-sm leading-snug ${
+                            msg.fromMe
+                              ? "rounded-2xl rounded-br-sm bg-indigo-500 font-medium text-white"
+                              : "rounded-2xl rounded-bl-sm bg-white/12 text-white"
+                          }`}
+                        >
+                          {msg.text}
+                        </div>
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              {/* Input bar */}
-              <div className="flex items-center gap-3 border-t border-white/10 px-4 py-3">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && chatInput.trim()) {
-                      sendMessage(chatInput.trim());
-                      setChatInput("");
-                    }
-                  }}
-                  placeholder="Type a message..."
-                  className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/30"
-                />
-                <button
-                  onClick={() => {
-                    if (chatInput.trim()) {
-                      sendMessage(chatInput.trim());
-                      setChatInput("");
-                    }
-                  }}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500 transition hover:bg-indigo-400 active:scale-95"
-                >
-                  <SendOutlined className="text-sm text-white" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Bottom controls ── */}
-          <div className="px-6 pt-4 pb-10">
-            {/* Secondary row: Video + Chat (connected only) */}
-            {phase === "connected" && (
-              <div className="mb-5 flex items-center justify-center gap-10">
-                {/* Video toggle */}
-                <button onClick={toggleVideo} className="flex flex-col items-center gap-1.5">
-                  <div
-                    className={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all ${
-                      videoEnabled ? "bg-white" : "border-2 border-white bg-white/25"
-                    }`}
-                  >
-                    <VideoCameraOutlined
-                      className={`text-[17px] ${videoEnabled ? "text-zinc-800" : "text-white"}`}
-                    />
-                    {/* Green dot when partner has video on but ours is off */}
-                    {remoteVideoEnabled && !videoEnabled && (
-                      <span className="absolute -top-1 -right-1 h-3 w-3 animate-pulse rounded-full border-2 border-[#0a0a18] bg-emerald-400" />
-                    )}
-                  </div>
-                  <span className="text-[10px] text-white/50">
-                    {videoEnabled ? "Video on" : "Video"}
-                  </span>
-                </button>
-
-                {/* Chat toggle */}
-                <button
-                  onClick={() => setChatOpen((v) => !v)}
-                  className="flex flex-col items-center gap-1.5"
-                >
-                  <div
-                    className={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all ${
-                      chatOpen ? "bg-white" : "border-2 border-white bg-white/25"
-                    }`}
-                  >
-                    <MessageOutlined
-                      className={`text-[17px] ${chatOpen ? "text-zinc-800" : "text-white"}`}
-                    />
-                    {hasUnread && (
-                      <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-[#0a0a18] bg-emerald-400" />
-                    )}
-                  </div>
-                  <span className="text-[10px] text-white/50">{chatOpen ? "Close" : "Chat"}</span>
-                </button>
-              </div>
-            )}
-
-            {/* Primary row: Mute · End Call · Speaker */}
-            <div className="flex items-center justify-center gap-8">
-              {/* Mute */}
-              <button onClick={toggleMute} className="flex flex-col items-center gap-2">
-                <div
-                  className={`flex h-14 w-14 items-center justify-center rounded-full transition-all ${
-                    muted ? "bg-white" : "border-2 border-white bg-white/25"
-                  }`}
-                >
-                  {muted ? (
-                    <AudioMutedOutlined className="text-[20px] text-zinc-800" />
-                  ) : (
-                    <AudioOutlined className="text-[20px] text-white" />
+                    ))
                   )}
                 </div>
-                <span className="text-[11px] text-white/50">{muted ? "Unmute" : "Mute"}</span>
+
+                {/* Input */}
+                <div className="shrink-0 border-t border-white/10 px-3 py-3">
+                  <div className="flex items-center gap-2 rounded-2xl bg-white/8 px-4 py-2.5 ring-1 ring-white/10 transition focus-within:ring-indigo-500/50">
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && chatInput.trim()) {
+                          sendMessage(chatInput.trim());
+                          setChatInput("");
+                        }
+                      }}
+                      placeholder="Type a message..."
+                      className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/30"
+                    />
+                    <button
+                      onClick={() => {
+                        if (chatInput.trim()) {
+                          sendMessage(chatInput.trim());
+                          setChatInput("");
+                        }
+                      }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500 transition hover:bg-indigo-400 active:scale-90 disabled:opacity-40"
+                      disabled={!chatInput.trim()}
+                    >
+                      <SendOutlined className="text-xs text-white" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ── Layer 5: bottom control bar ── */}
+          <div className="absolute right-0 bottom-0 left-0 z-20 bg-linear-to-t from-black/70 via-black/25 to-transparent px-4 pt-20 pb-8">
+            <div className="mx-auto flex w-full max-w-sm items-center justify-between gap-2 rounded-2xl bg-black/50 px-4 py-3 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl sm:max-w-md sm:gap-3 sm:px-6">
+              {/* Mute */}
+              <button
+                onClick={toggleMute}
+                className="flex flex-col items-center gap-1 transition active:scale-90"
+              >
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${muted ? "bg-white shadow-lg" : "bg-white/15 hover:bg-white/25"}`}
+                >
+                  {muted ? (
+                    <AudioMutedOutlined className="text-lg text-zinc-800" />
+                  ) : (
+                    <AudioOutlined className="text-lg text-white" />
+                  )}
+                </div>
+                <span className="text-[9px] font-medium text-white/50">
+                  {muted ? "Unmute" : "Mute"}
+                </span>
               </button>
 
-              {/* End Call */}
-              <button onClick={handleEndOrCancel} className="flex flex-col items-center gap-2">
-                <div className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-red-500 shadow-2xl shadow-red-500/50 transition-transform hover:scale-105 active:scale-95">
-                  <PhoneOutlined className="rotate-[135deg] text-2xl text-white" />
+              {/* Video */}
+              {phase === "connected" && (
+                <button
+                  onClick={toggleVideo}
+                  className="flex flex-col items-center gap-1 transition active:scale-90"
+                >
+                  <div
+                    className={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${videoEnabled ? "bg-white shadow-lg" : "bg-white/15 hover:bg-white/25"}`}
+                  >
+                    <VideoCameraOutlined
+                      className={`text-lg ${videoEnabled ? "text-zinc-800" : "text-white"}`}
+                    />
+                    {remoteVideoEnabled && !videoEnabled && (
+                      <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 animate-pulse rounded-full border-2 border-black/50 bg-emerald-400" />
+                    )}
+                  </div>
+                  <span className="text-[9px] font-medium text-white/50">
+                    {videoEnabled ? "Cam on" : "Camera"}
+                  </span>
+                </button>
+              )}
+
+              {/* End Call — prominent centre */}
+              <button
+                onClick={handleEndOrCancel}
+                className="flex flex-col items-center gap-1 transition active:scale-90"
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500 shadow-lg shadow-red-500/40 transition-transform hover:scale-105 sm:h-15 sm:w-15">
+                  <PhoneOutlined className="rotate-135 text-xl text-white" />
                 </div>
-                <span className="text-[11px] text-white/35">End</span>
+                <span className="text-[9px] font-medium text-white/40">End</span>
               </button>
+
+              {/* Chat */}
+              {phase === "connected" && (
+                <button
+                  onClick={() => setChatOpen((v) => !v)}
+                  className="flex flex-col items-center gap-1 transition active:scale-90"
+                >
+                  <div
+                    className={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${chatOpen ? "bg-white shadow-lg" : "bg-white/15 hover:bg-white/25"}`}
+                  >
+                    <MessageOutlined
+                      className={`text-lg ${chatOpen ? "text-zinc-800" : "text-white"}`}
+                    />
+                    {hasUnread && (
+                      <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-black/50 bg-emerald-400" />
+                    )}
+                  </div>
+                  <span className="text-[9px] font-medium text-white/50">
+                    {chatOpen ? "Close" : "Chat"}
+                  </span>
+                </button>
+              )}
 
               {/* Speaker */}
-              <button onClick={toggleSpeaker} className="flex flex-col items-center gap-2">
+              <button
+                onClick={toggleSpeaker}
+                className="flex flex-col items-center gap-1 transition active:scale-90"
+              >
                 <div
-                  className={`flex h-14 w-14 items-center justify-center rounded-full transition-all ${
-                    speakerOn ? "bg-white" : "border-2 border-white bg-white/25"
-                  }`}
+                  className={`flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${speakerOn ? "bg-white shadow-lg" : "bg-white/15 hover:bg-white/25"}`}
                 >
                   <SoundOutlined
-                    className={`text-[20px] ${speakerOn ? "text-zinc-800" : "text-white"}`}
+                    className={`text-lg ${speakerOn ? "text-zinc-800" : "text-white"}`}
                   />
                 </div>
-                <span className="text-[11px] text-white/50">Speaker</span>
+                <span className="text-[9px] font-medium text-white/50">Speaker</span>
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* ══ ENDED ══ */}
@@ -549,6 +655,16 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
    ══════════════════════════════════════════ */
 export default function PartnersPage() {
   const [modalOpen, setModalOpen] = React.useState(false);
+  const { setCallActive } = useCall();
+
+  const openModal = () => {
+    setModalOpen(true);
+    setCallActive(true);
+  };
+  const closeModal = () => {
+    setModalOpen(false);
+    setCallActive(false);
+  };
 
   const stats = [
     { icon: <TeamOutlined />, value: "10K+", label: "Conversations" },
@@ -571,7 +687,7 @@ export default function PartnersPage() {
               </div>
               <h1 className="mb-5 text-4xl leading-tight font-extrabold tracking-tight text-zinc-900 sm:text-5xl lg:text-[52px]">
                 Practice speaking with{" "}
-                <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                <span className="bg-linear-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
                   native partners
                 </span>
               </h1>
@@ -592,8 +708,8 @@ export default function PartnersPage() {
                 ))}
               </ul>
               <button
-                onClick={() => setModalOpen(true)}
-                className="inline-flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-indigo-500/30 transition-all hover:-translate-y-0.5 hover:shadow-2xl active:translate-y-0"
+                onClick={openModal}
+                className="inline-flex items-center gap-2.5 rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-indigo-500/30 transition-all hover:-translate-y-0.5 hover:shadow-2xl active:translate-y-0"
               >
                 <PhoneOutlined className="text-lg" />
                 Connect Now — It&apos;s Free
@@ -602,7 +718,7 @@ export default function PartnersPage() {
 
             {/* Right — iPhone mockup */}
             <div className="flex justify-center lg:justify-end">
-              <div className="relative h-[520px] w-[260px]">
+              <div className="relative h-130 w-65">
                 <Image
                   src="/iphone-call-mockup.png"
                   alt="SpeakEasy audio call interface"
@@ -710,8 +826,8 @@ export default function PartnersPage() {
             Join thousands of learners having real English conversations every day.
           </p>
           <button
-            onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-10 py-4 text-base font-bold text-white shadow-xl shadow-indigo-500/30 transition-all hover:-translate-y-0.5"
+            onClick={openModal}
+            className="inline-flex items-center gap-2.5 rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 px-10 py-4 text-base font-bold text-white shadow-xl shadow-indigo-500/30 transition-all hover:-translate-y-0.5"
           >
             <PhoneOutlined className="text-lg" />
             Start a Free Call
@@ -720,7 +836,7 @@ export default function PartnersPage() {
       </section>
 
       {/* ── Audio Call Modal ── */}
-      <AudioCallModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <AudioCallModal open={modalOpen} onClose={closeModal} />
     </div>
   );
 }
