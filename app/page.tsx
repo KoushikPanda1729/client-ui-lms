@@ -1,46 +1,36 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Input, message } from "antd";
+import { Button, message, Skeleton } from "antd";
 import {
   PlayCircleOutlined,
   BookOutlined,
   StarFilled,
-  SoundOutlined,
-  TrophyOutlined,
-  GlobalOutlined,
   ArrowRightOutlined,
   CheckCircleFilled,
   PhoneOutlined,
-  TeamOutlined,
-  SafetyCertificateOutlined,
   ClockCircleOutlined,
   ThunderboltOutlined,
-  MailOutlined,
+  LockOutlined,
 } from "@ant-design/icons";
 import { GoogleLogin } from "@react-oauth/google";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { authService } from "@/lib/services/auth";
+import { courseService, Course } from "@/lib/services/course";
 
 /* ═══════════════════════════════════════════════
-   HERO — Split layout: big headline left, signup right
+   HERO — Full-screen premium dark gradient
    ═══════════════════════════════════════════════ */
 function Hero() {
-  const [email, setEmail] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const { user, setUser } = useAuth();
   const router = useRouter();
   const googleBtnRef = useRef<HTMLDivElement>(null);
-
-  const handleSignUp = () => {
-    const dest = email ? `/register?email=${encodeURIComponent(email)}` : "/register";
-    router.push(dest);
-  };
 
   const handleGoogleSuccess = async (idToken: string) => {
     setGoogleLoading(true);
@@ -65,230 +55,141 @@ function Hero() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-indigo-50/80 via-white to-white pt-24 pb-0 lg:pt-32">
+    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-indigo-950 to-[#1e1040] pt-16 text-center">
       {contextHolder}
 
-      {/* Top announcement bar */}
-      <div className="absolute inset-x-0 top-16 z-10 border-b border-indigo-100 bg-indigo-600 px-4 py-2.5 text-center text-sm font-medium text-white">
-        🎉 Over 10,000 learners improved their IELTS band score by 2+ points.{" "}
-        <Link href="/courses" className="font-bold text-white underline">
-          Learn More →
+      {/* Hidden GoogleLogin */}
+      <div
+        ref={googleBtnRef}
+        style={{ position: "absolute", opacity: 0, height: 0, overflow: "hidden" }}
+      >
+        <GoogleLogin
+          onSuccess={(cr) => {
+            if (cr.credential) handleGoogleSuccess(cr.credential);
+          }}
+          onError={() => messageApi.error("Google sign-in failed")}
+        />
+      </div>
+
+      {/* Single soft glow */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/20 blur-[120px]" />
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center px-6 py-20">
+        {/* Announcement pill */}
+        <Link
+          href="/courses"
+          className="mb-10 inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-indigo-500/15 px-4 py-2 text-sm font-medium text-indigo-200 no-underline transition-all hover:bg-indigo-500/25"
+        >
+          🎉 10,000+ learners improved their IELTS score
+          <span className="text-indigo-400">→</span>
         </Link>
-      </div>
 
-      <div className="relative mx-auto max-w-6xl px-6 pt-14">
-        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-          {/* LEFT — Headline */}
-          <div className="max-w-xl">
-            <h1 className="mb-6 text-[46px] leading-[1.08] font-extrabold tracking-tight text-zinc-900 sm:text-[56px] lg:text-[62px]">
-              Master English <span className="gradient-text">Speaking</span>
-            </h1>
-            <p className="mb-8 max-w-md text-lg leading-relaxed text-zinc-500">
-              Practice with native speakers through live audio calls and expert-crafted courses.
-              Start free, improve fast.
-            </p>
+        {/* Headline */}
+        <h1 className="mb-5 max-w-3xl text-5xl leading-[1.1] font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
+          Speak English
+          <br />
+          <span className="bg-gradient-to-r from-indigo-300 to-violet-400 bg-clip-text text-transparent">
+            with Confidence
+          </span>
+        </h1>
 
-            {/* Trust badges */}
-            <div className="flex flex-wrap items-center gap-5 text-sm text-zinc-500">
-              <span className="flex items-center gap-1.5">
-                <CheckCircleFilled className="text-emerald-500" /> Free forever plan
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircleFilled className="text-emerald-500" /> No credit card needed
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircleFilled className="text-emerald-500" /> 10K+ learners
-              </span>
-            </div>
-          </div>
+        <p className="mb-10 max-w-md text-lg text-white/55">
+          Live practice with native speakers, expert courses, and progress tracking — all free to
+          start.
+        </p>
 
-          {/* RIGHT — Sign Up Card / Dashboard Card */}
-          <div className="mx-auto w-full max-w-sm lg:mx-0 lg:ml-auto">
-            {user ? (
-              /* Already logged in — show dashboard CTA */
-              <div className="rounded-2xl border border-zinc-200 bg-white p-7 shadow-xl shadow-zinc-200/50">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-2xl">
-                  👋
-                </div>
-                <h3 className="mb-1 text-lg font-bold text-zinc-900">
-                  Welcome back, {user.name || user.email.split("@")[0]}!
-                </h3>
-                <p className="mb-5 text-sm text-zinc-400">
-                  Continue your learning journey from where you left off.
-                </p>
-                <Button
-                  type="primary"
-                  size="large"
-                  block
-                  onClick={() => router.push("/dashboard")}
-                  className="h-12 rounded-xl text-[15px] font-bold shadow-lg shadow-indigo-500/25"
-                >
-                  Go to Dashboard <ArrowRightOutlined />
-                </Button>
-              </div>
-            ) : (
-              /* Not logged in — show signup form */
-              <div className="rounded-2xl border border-zinc-200 bg-white p-7 shadow-xl shadow-zinc-200/50">
-                <h3 className="mb-1 text-lg font-bold text-zinc-900">Start learning today</h3>
-                <p className="mb-5 text-sm text-zinc-400">Create your free account in seconds</p>
-
-                {/* Hidden GoogleLogin */}
-                <div
-                  ref={googleBtnRef}
-                  style={{ position: "absolute", opacity: 0, height: 0, overflow: "hidden" }}
-                >
-                  <GoogleLogin
-                    onSuccess={(cr) => {
-                      if (cr.credential) handleGoogleSuccess(cr.credential);
-                    }}
-                    onError={() => messageApi.error("Google sign-in failed")}
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-zinc-700">Email</label>
-                    <Input
-                      size="large"
-                      prefix={<MailOutlined className="text-zinc-400" />}
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      onPressEnter={handleSignUp}
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <Button
-                    type="primary"
-                    size="large"
-                    block
-                    onClick={handleSignUp}
-                    className="h-12 rounded-xl text-[15px] font-bold shadow-lg shadow-indigo-500/25"
-                  >
-                    Sign Up Free
-                  </Button>
-                </div>
-
-                <div className="mt-4 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-zinc-100" />
-                  <span className="text-xs text-zinc-400">Or continue with</span>
-                  <div className="h-px flex-1 bg-zinc-100" />
-                </div>
-
-                <button
-                  type="button"
-                  disabled={googleLoading}
-                  onClick={triggerGoogleLogin}
-                  className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 shadow-sm transition-all hover:bg-zinc-50 hover:shadow-md disabled:opacity-60"
-                >
-                  {googleLoading ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700" />
-                  ) : (
-                    <svg width="18" height="18" viewBox="0 0 48 48">
-                      <path
-                        fill="#EA4335"
-                        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                      />
-                      <path
-                        fill="#4285F4"
-                        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M10.53 28.59a14.5 14.5 0 010-9.18l-7.98-6.19a24.01 24.01 0 000 21.56l7.98-6.19z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                      />
-                    </svg>
-                  )}
-                  Google
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ═══════════════════════════════════════════════
-   FEATURE CARDS — 4 cards in a row (like Atlassian use-case cards)
-   ═══════════════════════════════════════════════ */
-function FeatureCards() {
-  const cards = [
-    {
-      tag: "LIVE PRACTICE",
-      tagColor: "text-indigo-600 bg-indigo-50",
-      title: "Speaking Sessions",
-      emoji: "🎧",
-      bg: "from-indigo-50 to-violet-50",
-      items: ["Random audio matching", "Native speakers worldwide", "No scheduling needed"],
-    },
-    {
-      tag: "STRUCTURED LEARNING",
-      tagColor: "text-blue-600 bg-blue-50",
-      title: "Expert Courses",
-      emoji: "📚",
-      bg: "from-blue-50 to-cyan-50",
-      items: ["200+ video lessons", "Quizzes & exercises", "Certificates on completion"],
-    },
-    {
-      tag: "EXAM PREPARATION",
-      tagColor: "text-rose-600 bg-rose-50",
-      title: "IELTS & TOEFL",
-      emoji: "🎯",
-      bg: "from-rose-50 to-pink-50",
-      items: ["Full mock tests", "Band score predictor", "Expert tips & strategies"],
-    },
-    {
-      tag: "DAILY IMPROVEMENT",
-      tagColor: "text-amber-600 bg-amber-50",
-      title: "Progress Tracking",
-      emoji: "📈",
-      bg: "from-amber-50 to-orange-50",
-      items: ["Streak tracking", "Fluency score", "Weekly reports"],
-    },
-  ];
-
-  return (
-    <section className="bg-zinc-50/50 py-16">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((c) => (
-            <div
-              key={c.title}
-              className="group overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+        {/* CTAs */}
+        {user ? (
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="flex h-12 items-center gap-2 rounded-xl bg-white px-7 text-[15px] font-bold text-indigo-700 shadow-xl transition-all hover:bg-indigo-50"
             >
-              {/* Card header */}
-              <div className={`flex h-36 items-end bg-gradient-to-br p-5 ${c.bg}`}>
-                <span className="text-5xl transition-transform duration-500 group-hover:scale-110">
-                  {c.emoji}
-                </span>
-              </div>
-              {/* Card body */}
-              <div className="p-5">
-                <span
-                  className={`mb-2 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase ${c.tagColor}`}
-                >
-                  {c.tag}
-                </span>
-                <h3 className="mb-3 text-base font-bold text-zinc-900">{c.title}</h3>
-                <ul className="space-y-1.5">
-                  {c.items.map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-[13px] text-zinc-500">
-                      <CheckCircleFilled className="text-[11px] text-emerald-400" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+              Continue Learning <ArrowRightOutlined />
+            </button>
+            <button
+              onClick={() => router.push("/courses")}
+              className="flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-7 text-[15px] font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20"
+            >
+              Browse Courses
+            </button>
+            <button
+              onClick={() => messageApi.info("Mobile app coming soon! 📱")}
+              className="flex h-12 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 text-[14px] font-medium text-white/60 transition-all hover:bg-white/15 hover:text-white"
+            >
+              📱 Get the App
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
+            <button
+              onClick={() => router.push("/register")}
+              className="flex h-12 items-center gap-2 rounded-xl bg-white px-7 text-[15px] font-bold text-indigo-700 shadow-xl transition-all hover:bg-indigo-50"
+            >
+              Start Learning Free <ArrowRightOutlined />
+            </button>
+            <button
+              type="button"
+              disabled={googleLoading}
+              onClick={triggerGoogleLogin}
+              className="flex h-12 items-center gap-2.5 rounded-xl border border-white/20 bg-white/10 px-6 text-[14px] font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20 disabled:opacity-60"
+            >
+              {googleLoading ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 48 48">
+                  <path
+                    fill="#EA4335"
+                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M10.53 28.59a14.5 14.5 0 010-9.18l-7.98-6.19a24.01 24.01 0 000 21.56l7.98-6.19z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                  />
+                </svg>
+              )}
+              Continue with Google
+            </button>
+            <button
+              onClick={() => messageApi.info("Mobile app coming soon! 📱")}
+              className="flex h-12 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 text-[14px] font-medium text-white/60 transition-all hover:bg-white/15 hover:text-white"
+            >
+              📱 Get the App
+            </button>
+          </div>
+        )}
+
+        {/* Minimal stats */}
+        <div className="mt-14 flex items-center gap-8 sm:gap-12">
+          {[
+            { value: "10K+", label: "Learners" },
+            { value: "50+", label: "Countries" },
+            { value: "4.9★", label: "Rating" },
+            { value: "200+", label: "Courses" },
+          ].map((s, i) => (
+            <div key={s.label} className="flex items-center gap-8">
+              {i > 0 && <div className="h-6 w-px bg-white/10" />}
+              <div className="text-center">
+                <div className="text-xl font-bold text-white">{s.value}</div>
+                <div className="text-xs text-white/35">{s.label}</div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Bottom fade to white */}
+      <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-24 bg-gradient-to-t from-white to-transparent" />
     </section>
   );
 }
@@ -680,6 +581,160 @@ function FinalCTA() {
 }
 
 /* ═══════════════════════════════════════════════
+   COURSES SECTION — Real courses from the API
+   ═══════════════════════════════════════════════ */
+const LEVEL_CFG = {
+  beginner: { gradient: "from-emerald-400 to-teal-500", emoji: "📚" },
+  intermediate: { gradient: "from-blue-400 to-indigo-500", emoji: "💼" },
+  advanced: { gradient: "from-rose-400 to-pink-500", emoji: "🎯" },
+} as const;
+
+const DEFAULT_CFG = { gradient: "from-indigo-400 to-violet-500", emoji: "📖" };
+
+function formatPrice(price: number): string {
+  if (price === 0) return "Free";
+  return `₹${price}`;
+}
+
+function CourseCardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-zinc-100 bg-white">
+      <div className="h-44 w-full bg-zinc-100" />
+      <div className="p-5">
+        <Skeleton active paragraph={{ rows: 3 }} />
+      </div>
+    </div>
+  );
+}
+
+function CourseCard({ c }: { c: Course }) {
+  const cfg = c.level ? LEVEL_CFG[c.level] : DEFAULT_CFG;
+  const priceLabel = c.isPremium ? formatPrice(c.price) : "Free";
+
+  return (
+    <Link href={`/courses/${c.id}`} className="no-underline">
+      <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-zinc-200/60">
+        {/* Coloured header */}
+        <div
+          className={`relative flex h-44 flex-col justify-between bg-gradient-to-br p-5 ${cfg.gradient}`}
+        >
+          <div className="flex items-start justify-between">
+            <span className="rounded-lg bg-white/25 px-2.5 py-1 text-[11px] font-bold text-white capitalize backdrop-blur-sm">
+              {c.level ?? "General"}
+            </span>
+            <span className="flex items-center gap-1 rounded-lg bg-black/20 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
+              {c.isPremium && priceLabel !== "Free" && <LockOutlined className="text-[10px]" />}
+              {priceLabel}
+            </span>
+          </div>
+
+          <div className="flex items-end justify-between">
+            {c.thumbnailUrl ? (
+              <img
+                src={c.thumbnailUrl}
+                alt={c.title}
+                className="h-14 w-14 rounded-xl object-cover shadow-md"
+              />
+            ) : (
+              <span className="text-5xl drop-shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3">
+                {cfg.emoji}
+              </span>
+            )}
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/25 text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:scale-110 group-hover:opacity-100">
+              <PlayCircleOutlined className="text-lg" />
+            </div>
+          </div>
+
+          {/* Decorative blobs */}
+          <div className="pointer-events-none absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-24 w-24 -translate-x-6 translate-y-6 rounded-full bg-white/10" />
+        </div>
+
+        {/* Body */}
+        <div className="flex flex-1 flex-col p-5">
+          <h3 className="mb-1.5 text-[15px] leading-snug font-bold text-zinc-900">{c.title}</h3>
+          <p className="mb-4 line-clamp-2 text-[13px] leading-relaxed text-zinc-500">
+            {c.description ?? "No description available."}
+          </p>
+          <div className="mt-auto flex items-center gap-4 text-[12px] text-zinc-400">
+            <span className="flex items-center gap-1">
+              <BookOutlined /> {c.totalLessons} lessons
+            </span>
+            <span className="flex items-center gap-1 capitalize">
+              <ClockCircleOutlined /> {c.level ?? "All levels"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function CoursesSection() {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    courseService
+      .list({ limit: 6 })
+      .then((res) => setCourses(res.courses))
+      .catch(() => setCourses([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (!loading && courses.length === 0) return null;
+
+  return (
+    <section className="bg-white py-20">
+      <div className="mx-auto max-w-6xl px-6">
+        {/* Heading */}
+        <div className="mb-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <span className="mb-2 inline-block text-xs font-bold tracking-wider text-indigo-600 uppercase">
+              Featured Courses
+            </span>
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+              Start learning today
+            </h2>
+            <p className="mt-2 max-w-lg text-base text-zinc-500">
+              Expert-crafted courses covering grammar, fluency, business English, and more.
+            </p>
+          </div>
+          <Link
+            href="/courses"
+            className="shrink-0 text-sm font-semibold text-indigo-600 no-underline hover:text-indigo-500"
+          >
+            View all courses <ArrowRightOutlined />
+          </Link>
+        </div>
+
+        {/* Grid */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => <CourseCardSkeleton key={i} />)
+            : courses.map((c) => <CourseCard key={c.id} c={c} />)}
+        </div>
+
+        {/* CTA */}
+        {!loading && courses.length >= 6 && (
+          <div className="mt-10 text-center">
+            <Link href="/courses">
+              <Button
+                size="large"
+                type="primary"
+                className="h-12 rounded-xl px-8 text-[15px] font-bold shadow-lg shadow-indigo-500/25"
+              >
+                Browse All Courses <ArrowRightOutlined />
+              </Button>
+            </Link>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════
    PAGE
    ═══════════════════════════════════════════════ */
 export default function Home() {
@@ -688,8 +743,8 @@ export default function Home() {
       <Navbar />
       <main className="bg-white">
         <Hero />
-        <FeatureCards />
         <SocialProofBanner />
+        <CoursesSection />
         <FeatureSections />
         {/* <HowItWorks /> */}
         <CollectionCTA />

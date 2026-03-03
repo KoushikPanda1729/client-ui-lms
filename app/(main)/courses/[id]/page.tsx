@@ -34,7 +34,7 @@ const LEVEL_COLOR: Record<string, string> = {
 
 function formatPrice(price: number): string {
   if (price === 0) return "Free";
-  return `$${Math.round(price / 100)}`;
+  return `₹${price}`;
 }
 
 export default function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -85,6 +85,36 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
     if (firstLesson) {
       router.push(`/courses/${course.id}/learn?lesson=${firstLesson.id}`);
     }
+  };
+
+  const handleLessonClick = async (lessonId: string) => {
+    if (!course) return;
+    if (enrolled) {
+      router.push(`/courses/${course.id}/learn?lesson=${lessonId}`);
+      return;
+    }
+    if (isPremium) {
+      messageApi.info("Purchase this course to access lessons");
+      return;
+    }
+    // Free course: auto-enroll then navigate
+    setEnrolling(true);
+    try {
+      await courseService.enroll(course.id);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      // 409 = already enrolled — fine, just navigate
+      if (status !== 409) {
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          "Failed to enroll";
+        messageApi.error(msg);
+        setEnrolling(false);
+        return;
+      }
+    }
+    router.push(`/courses/${course.id}/learn?lesson=${lessonId}`);
+    setEnrolling(false);
   };
 
   if (loading) {
@@ -236,10 +266,13 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   .map((lesson: Lesson, index: number) => (
                     <div
                       key={lesson.id}
-                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors ${
+                      onClick={() => handleLessonClick(lesson.id)}
+                      className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors ${
                         lesson.completed
-                          ? "border-emerald-100 bg-emerald-50/50"
-                          : "border-zinc-100 bg-white"
+                          ? "border-emerald-100 bg-emerald-50/50 hover:border-emerald-200"
+                          : isPremium && !enrolled
+                            ? "cursor-not-allowed border-zinc-100 bg-white opacity-60"
+                            : "border-zinc-100 bg-white hover:border-indigo-200 hover:bg-indigo-50/30"
                       }`}
                     >
                       {/* Completion indicator */}
@@ -270,10 +303,14 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                         </span>
                       )}
 
-                      {/* Lesson type badge */}
-                      <span className="hidden rounded-md bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-400 capitalize sm:inline">
-                        {lesson.type}
-                      </span>
+                      {/* Lesson type badge / lock */}
+                      {isPremium && !enrolled ? (
+                        <LockOutlined className="text-xs text-zinc-400" />
+                      ) : (
+                        <span className="hidden rounded-md bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-400 capitalize sm:inline">
+                          {lesson.type}
+                        </span>
+                      )}
                     </div>
                   ))
               )}
@@ -284,7 +321,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           <div>
             <div className="sticky top-20 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-lg shadow-black/5">
               {/* Price */}
-              <div className="mb-1 text-3xl font-bold text-indigo-600">{priceLabel}</div>
+              <div className="mb-1 text-3xl font-bold text-indigo-600">
+                {isPremium ? priceLabel : "Free"}
+              </div>
               {isPremium && (
                 <p className="mb-4 text-xs text-zinc-400">One-time purchase · Lifetime access</p>
               )}

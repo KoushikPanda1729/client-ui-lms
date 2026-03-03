@@ -64,8 +64,8 @@ export default function Navbar() {
     <header
       className={`fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "border-b border-zinc-200 bg-white/90 shadow-sm backdrop-blur-xl"
-          : "bg-transparent"
+          ? "border-b border-zinc-200 bg-white shadow-sm"
+          : "border-b border-white/10 bg-white/10 backdrop-blur-xl"
       }`}
     >
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
@@ -73,8 +73,10 @@ export default function Navbar() {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-bold text-white shadow-lg shadow-indigo-500/30">
             S
           </div>
-          <span className="text-xl font-bold tracking-tight text-zinc-900">
-            Speak<span className="gradient-text">Easy</span>
+          <span
+            className={`text-xl font-bold tracking-tight transition-colors ${scrolled ? "text-zinc-900" : "text-white"}`}
+          >
+            Speak<span className={scrolled ? "gradient-text" : "text-indigo-300"}>Easy</span>
           </span>
         </Link>
 
@@ -83,7 +85,7 @@ export default function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-zinc-500 no-underline transition-colors hover:text-zinc-900"
+              className={`text-sm font-medium no-underline transition-colors ${scrolled ? "text-zinc-500 hover:text-zinc-900" : "text-white/80 hover:text-white"}`}
             >
               {link.label}
             </Link>
@@ -94,14 +96,18 @@ export default function Navbar() {
         <div className="hidden items-center gap-3 md:flex">
           {user ? (
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={["click"]}>
-              <button className="flex cursor-pointer items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 transition-all hover:border-indigo-300 hover:shadow-sm">
+              <button
+                className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 transition-all ${scrolled ? "border-zinc-200 bg-white hover:border-indigo-300 hover:shadow-sm" : "border-white/25 bg-white/15 backdrop-blur-sm hover:bg-white/25"}`}
+              >
                 <Avatar
                   size={28}
                   src={user.avatarUrl}
                   icon={!user.avatarUrl && <UserOutlined />}
                   style={{ backgroundColor: "#6366f1" }}
                 />
-                <span className="max-w-[120px] truncate text-sm font-medium text-zinc-700">
+                <span
+                  className={`max-w-[120px] truncate text-sm font-medium ${scrolled ? "text-zinc-700" : "text-white"}`}
+                >
                   {user.name || user.email.split("@")[0]}
                 </span>
               </button>
@@ -109,7 +115,10 @@ export default function Navbar() {
           ) : (
             <>
               <Link href="/login">
-                <Button type="text" className="h-9 text-sm font-medium text-zinc-600">
+                <Button
+                  type="text"
+                  className={`h-9 text-sm font-medium ${scrolled ? "text-zinc-600" : "!text-white/80 hover:!text-white"}`}
+                >
                   Log In
                 </Button>
               </Link>

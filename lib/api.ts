@@ -24,9 +24,9 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config;
 
-    // Skip refresh for /auth/self and /auth/refresh themselves
+    // Only skip refresh for the refresh endpoint itself (avoid infinite loop)
+    // Login/register/google have no session yet so no point refreshing
     if (
-      original?.url?.includes("/auth/self") ||
       original?.url?.includes("/auth/refresh") ||
       original?.url?.includes("/auth/login") ||
       original?.url?.includes("/auth/register") ||

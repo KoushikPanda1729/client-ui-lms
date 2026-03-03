@@ -7,13 +7,15 @@ export interface UserProfile {
   bio: string | null;
   avatarUrl: string | null;
   nativeLanguage: string | null;
-  englishLevel: "beginner" | "intermediate" | "advanced" | null;
+  englishLevel: "beginner" | "elementary" | "intermediate" | "advanced" | null;
   learningGoal: string | null;
   country: string | null;
   timezone: string | null;
   totalSessions: number;
   totalPracticeMins: number;
-  streak: number;
+  streakDays: number;
+  lastSessionAt: string | null;
+  onboardingCompleted: boolean;
 }
 
 export interface UpdateProfilePayload {
@@ -25,7 +27,6 @@ export interface UpdateProfilePayload {
   learningGoal?: string;
   country?: string;
   timezone?: string;
-  onboardingCompleted?: boolean;
 }
 
 export const userService = {
@@ -36,6 +37,20 @@ export const userService = {
 
   async updateMe(payload: UpdateProfilePayload): Promise<UserProfile> {
     const { data } = await api.patch("/users/me", payload);
+    return data.data as UserProfile;
+  },
+
+  async uploadAvatar(file: File): Promise<UserProfile> {
+    const form = new FormData();
+    form.append("avatar", file);
+    const { data } = await api.post("/users/me/avatar", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data.data as UserProfile;
+  },
+
+  async deleteAvatar(): Promise<UserProfile> {
+    const { data } = await api.delete("/users/me/avatar");
     return data.data as UserProfile;
   },
 };

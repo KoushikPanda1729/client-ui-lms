@@ -136,49 +136,6 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
-
-            {/* Upcoming sessions */}
-            <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-zinc-900 dark:text-white">
-                  Upcoming Sessions
-                </h2>
-                <Link href="/partners">
-                  <Button type="link" size="small" className="text-xs font-medium">
-                    Find Partners <RightOutlined />
-                  </Button>
-                </Link>
-              </div>
-              <div className="space-y-3">
-                {upcomingSessions.map((s) => (
-                  <div
-                    key={s.partner + s.date}
-                    className="flex items-center gap-3 rounded-xl bg-zinc-50 p-3.5 dark:bg-zinc-800/50"
-                  >
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-50 to-violet-50 text-xl dark:from-indigo-950/20 dark:to-violet-950/20">
-                      {s.avatar}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-sm font-medium text-zinc-900 dark:text-white">
-                        {s.partner}
-                      </h4>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{s.topic}</p>
-                      <p className="mt-0.5 flex items-center gap-1 text-[11px] text-zinc-400">
-                        <CalendarOutlined /> {s.date}
-                      </p>
-                    </div>
-                    <Button
-                      type="primary"
-                      icon={<VideoCameraOutlined />}
-                      size="small"
-                      className="rounded-lg shadow-md shadow-indigo-500/20"
-                    >
-                      Join
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Right sidebar */}

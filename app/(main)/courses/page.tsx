@@ -41,7 +41,7 @@ const DEFAULT_CONFIG = {
 
 function formatPrice(price: number): string {
   if (price === 0) return "Free";
-  return `$${Math.round(price / 100)}`;
+  return `₹${price}`;
 }
 
 function CourseCardSkeleton() {
