@@ -17,20 +17,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     if (!loading && !user) {
       const redirect = encodeURIComponent(pathname);
       router.replace(`/login?redirect=${redirect}`);
-    } else if (!loading && user && user.onboardingCompleted === false) {
+    } else if (!loading && user && !user.onboardingCompleted) {
       router.replace("/onboarding");
     }
   }, [user, loading, router, pathname]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Spin size="large" />
-      </div>
-    );
-  }
-
-  if (!user) {
+  // Block render until auth is resolved — prevents dashboard flash
+  if (loading || !user || !user.onboardingCompleted) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Spin size="large" />

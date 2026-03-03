@@ -8,6 +8,7 @@ import { LockOutlined, MailOutlined, UserOutlined } from "@ant-design/icons";
 import { useGoogleLogin } from "@react-oauth/google";
 import { authService } from "@/lib/services/auth";
 import { useAuth } from "@/contexts/AuthContext";
+import { setOnboardingCookie } from "@/lib/onbCookie";
 
 function GoogleIcon() {
   return (
@@ -53,7 +54,8 @@ function RegisterContent() {
     try {
       const user = await authService.register(values.name, values.email, values.password);
       setUser(user);
-      router.replace(redirectTo);
+      if (user.onboardingCompleted) setOnboardingCookie();
+      router.replace(user.onboardingCompleted ? redirectTo : "/onboarding");
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -69,7 +71,8 @@ function RegisterContent() {
     try {
       const user = await authService.googleSignIn(accessToken);
       setUser(user);
-      router.replace(redirectTo);
+      if (user.onboardingCompleted) setOnboardingCookie();
+      router.replace(user.onboardingCompleted ? redirectTo : "/onboarding");
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||

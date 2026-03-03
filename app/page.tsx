@@ -691,7 +691,7 @@ export default function Home() {
         <FeatureCards />
         <SocialProofBanner />
         <FeatureSections />
-        <HowItWorks />
+        {/* <HowItWorks /> */}
         <CollectionCTA />
         <Testimonials />
         <FinalCTA />

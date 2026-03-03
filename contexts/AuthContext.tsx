@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { authService, AuthUser } from "@/lib/services/auth";
+import { clearOnboardingCookie } from "@/lib/onbCookie";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore
     }
+    clearOnboardingCookie();
     setUser(null);
   }, []);
 
