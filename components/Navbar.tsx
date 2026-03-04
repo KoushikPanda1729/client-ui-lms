@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Button, Drawer, Dropdown, Avatar } from "antd";
 import {
   MenuOutlined,
@@ -25,6 +25,11 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Transparent mode only on home page (has dark hero background)
+  const isHome = pathname === "/";
+  const transparent = isHome && !scrolled;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -63,9 +68,9 @@ export default function Navbar() {
   return (
     <header
       className={`fixed top-0 right-0 left-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "border-b border-zinc-200 bg-white shadow-sm"
-          : "border-b border-white/10 bg-white/10 backdrop-blur-xl"
+        transparent
+          ? "border-b border-white/10 bg-white/10 backdrop-blur-xl"
+          : "border-b border-zinc-200 bg-white shadow-sm"
       }`}
     >
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
@@ -74,9 +79,9 @@ export default function Navbar() {
             S
           </div>
           <span
-            className={`text-xl font-bold tracking-tight transition-colors ${scrolled ? "text-zinc-900" : "text-white"}`}
+            className={`text-xl font-bold tracking-tight transition-colors ${transparent ? "text-white" : "text-zinc-900"}`}
           >
-            Speak<span className={scrolled ? "gradient-text" : "text-indigo-300"}>Easy</span>
+            Speak<span className={transparent ? "text-indigo-300" : "gradient-text"}>Easy</span>
           </span>
         </Link>
 
@@ -85,7 +90,7 @@ export default function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className={`text-sm font-medium no-underline transition-colors ${scrolled ? "text-zinc-500 hover:text-zinc-900" : "text-white/80 hover:text-white"}`}
+              className={`text-sm font-medium no-underline transition-colors ${transparent ? "text-white/80 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
             >
               {link.label}
             </Link>
@@ -97,7 +102,7 @@ export default function Navbar() {
           {user ? (
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={["click"]}>
               <button
-                className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 transition-all ${scrolled ? "border-zinc-200 bg-white hover:border-indigo-300 hover:shadow-sm" : "border-white/25 bg-white/15 backdrop-blur-sm hover:bg-white/25"}`}
+                className={`flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 transition-all ${transparent ? "border-white/25 bg-white/15 backdrop-blur-sm hover:bg-white/25" : "border-zinc-200 bg-white hover:border-indigo-300 hover:shadow-sm"}`}
               >
                 <Avatar
                   size={28}
@@ -106,7 +111,7 @@ export default function Navbar() {
                   style={{ backgroundColor: "#6366f1" }}
                 />
                 <span
-                  className={`max-w-[120px] truncate text-sm font-medium ${scrolled ? "text-zinc-700" : "text-white"}`}
+                  className={`max-w-[120px] truncate text-sm font-medium ${transparent ? "text-white" : "text-zinc-700"}`}
                 >
                   {user.name || user.email.split("@")[0]}
                 </span>
@@ -117,7 +122,7 @@ export default function Navbar() {
               <Link href="/login">
                 <Button
                   type="text"
-                  className={`h-9 text-sm font-medium ${scrolled ? "text-zinc-600" : "!text-white/80 hover:!text-white"}`}
+                  className={`h-9 text-sm font-medium ${transparent ? "!text-white/80 hover:!text-white" : "text-zinc-600"}`}
                 >
                   Log In
                 </Button>
@@ -137,7 +142,9 @@ export default function Navbar() {
         <div className="block md:hidden">
           <Button
             type="text"
-            icon={<MenuOutlined className="text-lg text-zinc-700" />}
+            icon={
+              <MenuOutlined className={`text-lg ${transparent ? "text-white" : "text-zinc-700"}`} />
+            }
             onClick={() => setMobileOpen(true)}
           />
         </div>

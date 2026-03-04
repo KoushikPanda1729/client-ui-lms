@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button, message, Skeleton } from "antd";
 import {
@@ -9,11 +10,11 @@ import {
   BookOutlined,
   StarFilled,
   ArrowRightOutlined,
-  CheckCircleFilled,
   PhoneOutlined,
   ClockCircleOutlined,
   ThunderboltOutlined,
   LockOutlined,
+  MobileFilled,
 } from "@ant-design/icons";
 import { GoogleLogin } from "@react-oauth/google";
 import Navbar from "@/components/Navbar";
@@ -23,7 +24,7 @@ import { authService } from "@/lib/services/auth";
 import { courseService, Course } from "@/lib/services/course";
 
 /* ═══════════════════════════════════════════════
-   HERO — Full-screen premium dark gradient
+   HERO — Clean centered, compact
    ═══════════════════════════════════════════════ */
 function Hero() {
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -55,7 +56,10 @@ function Hero() {
   };
 
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-indigo-950 to-[#1e1040] pt-16 text-center">
+    <section
+      className="relative overflow-hidden pt-16"
+      style={{ background: "linear-gradient(160deg, #0d0d1f 0%, #10082e 60%, #0a1128 100%)" }}
+    >
       {contextHolder}
 
       {/* Hidden GoogleLogin */}
@@ -71,106 +75,89 @@ function Hero() {
         />
       </div>
 
-      {/* Single soft glow */}
+      {/* Subtle dot grid */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: "radial-gradient(rgba(99,102,241,0.15) 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
+        }}
+      />
+
+      {/* Glow */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/20 blur-[120px]" />
+        <div className="absolute top-0 left-1/2 h-[400px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600/20 blur-[100px]" />
       </div>
 
-      <div className="relative z-10 flex flex-col items-center px-6 py-20">
-        {/* Announcement pill */}
+      {/* Content */}
+      <div className="relative z-10 mx-auto max-w-4xl px-6 py-24 text-center">
+        {/* Badge */}
         <Link
           href="/courses"
-          className="mb-10 inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-indigo-500/15 px-4 py-2 text-sm font-medium text-indigo-200 no-underline transition-all hover:bg-indigo-500/25"
+          className="mb-8 inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-4 py-1.5 text-sm font-medium text-indigo-300 no-underline backdrop-blur-sm transition-all hover:bg-indigo-500/20"
         >
           🎉 10,000+ learners improved their IELTS score
           <span className="text-indigo-400">→</span>
         </Link>
 
         {/* Headline */}
-        <h1 className="mb-5 max-w-3xl text-5xl leading-[1.1] font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
+        <h1 className="mb-5 text-5xl leading-[1.1] font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
           Speak English
           <br />
-          <span className="bg-gradient-to-r from-indigo-300 to-violet-400 bg-clip-text text-transparent">
+          <span
+            style={{
+              background: "linear-gradient(90deg, #a5b4fc 0%, #c4b5fd 60%, #818cf8 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
             with Confidence
           </span>
         </h1>
 
-        <p className="mb-10 max-w-md text-lg text-white/55">
+        <p className="mx-auto mb-10 max-w-lg text-lg leading-relaxed text-white/50">
           Live practice with native speakers, expert courses, and progress tracking — all free to
           start.
         </p>
 
         {/* CTAs */}
         {user ? (
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => router.push("/dashboard")}
-              className="flex h-12 items-center gap-2 rounded-xl bg-white px-7 text-[15px] font-bold text-indigo-700 shadow-xl transition-all hover:bg-indigo-50"
+              className="flex h-12 items-center gap-2 rounded-xl bg-white px-7 text-[15px] font-bold text-indigo-700 shadow-xl shadow-indigo-500/20 transition-all hover:-translate-y-0.5 hover:shadow-2xl"
             >
               Continue Learning <ArrowRightOutlined />
             </button>
             <button
               onClick={() => router.push("/courses")}
-              className="flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-7 text-[15px] font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20"
+              className="flex h-12 items-center gap-2 rounded-xl border border-white/15 px-7 text-[15px] font-medium text-white transition-all hover:bg-white/10"
             >
               Browse Courses
             </button>
-            <button
-              onClick={() => messageApi.info("Mobile app coming soon! 📱")}
-              className="flex h-12 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 text-[14px] font-medium text-white/60 transition-all hover:bg-white/15 hover:text-white"
-            >
-              📱 Get the App
-            </button>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => router.push("/register")}
-              className="flex h-12 items-center gap-2 rounded-xl bg-white px-7 text-[15px] font-bold text-indigo-700 shadow-xl transition-all hover:bg-indigo-50"
+              className="flex h-12 items-center gap-2 rounded-xl bg-white px-7 text-[15px] font-bold text-indigo-700 shadow-xl shadow-indigo-500/20 transition-all hover:-translate-y-0.5 hover:shadow-2xl"
             >
               Start Learning Free <ArrowRightOutlined />
             </button>
             <button
-              type="button"
-              disabled={googleLoading}
-              onClick={triggerGoogleLogin}
-              className="flex h-12 items-center gap-2.5 rounded-xl border border-white/20 bg-white/10 px-6 text-[14px] font-medium text-white backdrop-blur-sm transition-all hover:bg-white/20 disabled:opacity-60"
+              onClick={() => {
+                {
+                }
+              }}
+              className="flex h-12 items-center gap-2 rounded-xl bg-white px-7 text-[15px] font-bold text-indigo-700 shadow-xl shadow-indigo-500/20 transition-all hover:-translate-y-0.5 hover:shadow-2xl"
             >
-              {googleLoading ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 48 48">
-                  <path
-                    fill="#EA4335"
-                    d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                  />
-                  <path
-                    fill="#4285F4"
-                    d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M10.53 28.59a14.5 14.5 0 010-9.18l-7.98-6.19a24.01 24.01 0 000 21.56l7.98-6.19z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                  />
-                </svg>
-              )}
-              Continue with Google
-            </button>
-            <button
-              onClick={() => messageApi.info("Mobile app coming soon! 📱")}
-              className="flex h-12 items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 text-[14px] font-medium text-white/60 transition-all hover:bg-white/15 hover:text-white"
-            >
-              📱 Get the App
+              Get App <MobileFilled />
             </button>
           </div>
         )}
 
-        {/* Minimal stats */}
-        <div className="mt-14 flex items-center gap-8 sm:gap-12">
+        {/* Stats */}
+        <div className="mt-14 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
           {[
             { value: "10K+", label: "Learners" },
             { value: "50+", label: "Countries" },
@@ -178,18 +165,36 @@ function Hero() {
             { value: "200+", label: "Courses" },
           ].map((s, i) => (
             <div key={s.label} className="flex items-center gap-8">
-              {i > 0 && <div className="h-6 w-px bg-white/10" />}
-              <div className="text-center">
-                <div className="text-xl font-bold text-white">{s.value}</div>
+              {i > 0 && <div className="h-5 w-px bg-white/10" />}
+              <div>
+                <div className="text-lg font-bold text-white">{s.value}</div>
                 <div className="text-xs text-white/35">{s.label}</div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Feature pills */}
+        <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
+          {[
+            { icon: "🎧", text: "Live speaking sessions" },
+            { icon: "📚", text: "200+ expert courses" },
+            { icon: "📈", text: "Progress tracking" },
+            { icon: "🏆", text: "Earn certificates" },
+          ].map((f) => (
+            <div
+              key={f.text}
+              className="flex items-center gap-2 rounded-full border border-white/8 bg-white/5 px-4 py-2 text-sm text-white/60"
+            >
+              <span>{f.icon}</span>
+              {f.text}
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Bottom fade to white */}
-      <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-24 bg-gradient-to-t from-white to-transparent" />
+      {/* Bottom fade */}
+      <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-20 bg-gradient-to-t from-white to-transparent" />
     </section>
   );
 }
@@ -314,68 +319,6 @@ function FeatureSections() {
                   {s.linkText}
                 </Link>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ═══════════════════════════════════════════════
-   HOW IT WORKS — Numbered steps (1, 2, 3) like Atlassian
-   ═══════════════════════════════════════════════ */
-function HowItWorks() {
-  const steps = [
-    {
-      num: "1",
-      color: "text-indigo-600",
-      title: "Create your account",
-      desc: "Sign up in 30 seconds with Google or email. Completely free.",
-      bg: "from-indigo-50 to-violet-50",
-      emoji: "🚀",
-    },
-    {
-      num: "2",
-      color: "text-violet-600",
-      title: "Choose your path",
-      desc: "Pick courses, start live speaking practice, or do both.",
-      bg: "from-violet-50 to-pink-50",
-      emoji: "🎯",
-    },
-    {
-      num: "3",
-      color: "text-rose-500",
-      title: "Become fluent",
-      desc: "Practice daily, track your progress, and earn certificates.",
-      bg: "from-rose-50 to-amber-50",
-      emoji: "🏆",
-    },
-  ];
-
-  return (
-    <section className="bg-violet-50/40 py-20">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-14 text-center">
-          <h2 className="mb-3 text-3xl font-bold text-zinc-900 sm:text-4xl">
-            Start speaking English in 3 simple steps
-          </h2>
-          <p className="mx-auto max-w-lg text-base text-zinc-500">
-            No complicated setup. Go from zero to your first conversation in minutes.
-          </p>
-        </div>
-
-        <div className="grid gap-6 sm:grid-cols-3">
-          {steps.map((s) => (
-            <div key={s.num} className="text-center">
-              {/* Card */}
-              <div className={`mb-6 rounded-2xl bg-gradient-to-br p-6 ${s.bg}`}>
-                <span className="text-5xl">{s.emoji}</span>
-              </div>
-              {/* Number */}
-              <div className={`mb-3 text-4xl font-black ${s.color}`}>{s.num}</div>
-              <h3 className="mb-2 text-lg font-bold text-zinc-900">{s.title}</h3>
-              <p className="mx-auto max-w-xs text-sm leading-relaxed text-zinc-500">{s.desc}</p>
             </div>
           ))}
         </div>
@@ -630,9 +573,11 @@ function CourseCard({ c }: { c: Course }) {
 
           <div className="flex items-end justify-between">
             {c.thumbnailUrl ? (
-              <img
+              <Image
                 src={c.thumbnailUrl}
                 alt={c.title}
+                width={56}
+                height={56}
                 className="h-14 w-14 rounded-xl object-cover shadow-md"
               />
             ) : (
@@ -746,7 +691,6 @@ export default function Home() {
         <SocialProofBanner />
         <CoursesSection />
         <FeatureSections />
-        {/* <HowItWorks /> */}
         <CollectionCTA />
         <Testimonials />
         <FinalCTA />

@@ -53,8 +53,12 @@ api.interceptors.response.use(
         return api(original);
       } catch (refreshError) {
         processQueue(refreshError);
-        // Not on login page? redirect with current path as ?redirect=
-        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        // Only redirect to login from protected pages — public pages stay as-is
+        const PROTECTED = ["/dashboard", "/settings"];
+        if (
+          typeof window !== "undefined" &&
+          PROTECTED.some((p) => window.location.pathname.startsWith(p))
+        ) {
           const redirect = encodeURIComponent(window.location.pathname);
           window.location.href = `/login?redirect=${redirect}`;
         }
