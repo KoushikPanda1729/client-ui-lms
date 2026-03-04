@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import Hls from "hls.js";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Spin, Progress, message, Radio, Checkbox, Tag, Tooltip } from "antd";
@@ -45,6 +46,37 @@ function TextLesson({ content }: { content: string | null }) {
 
 // ─── Video Lesson ─────────────────────────────────────────────────────────────
 function VideoLesson({ videoUrl }: { videoUrl: string | null }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const isHls = !!videoUrl && videoUrl.endsWith("/stream");
+  const isYoutube =
+    !!videoUrl && (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be"));
+  const isVimeo = !!videoUrl && videoUrl.includes("vimeo.com");
+
+  useEffect(() => {
+    if (!isHls || !videoRef.current || !videoUrl) return;
+
+    const video = videoRef.current;
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5503";
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        xhrSetup: (xhr, url) => {
+          // Send cookies only for our API (manifest), not CloudFront (segments)
+          if (url.startsWith(apiBase)) {
+            xhr.withCredentials = true;
+          }
+        },
+      });
+      hls.loadSource(videoUrl);
+      hls.attachMedia(video);
+      return () => hls.destroy();
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Safari native HLS support
+      video.src = videoUrl;
+    }
+  }, [videoUrl, isHls]);
+
   if (!videoUrl) {
     return (
       <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 text-sm text-zinc-400">
@@ -52,10 +84,6 @@ function VideoLesson({ videoUrl }: { videoUrl: string | null }) {
       </div>
     );
   }
-
-  // Support YouTube / Vimeo embeds and direct video files
-  const isYoutube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
-  const isVimeo = videoUrl.includes("vimeo.com");
 
   if (isYoutube || isVimeo) {
     const embedUrl = isYoutube
@@ -73,9 +101,16 @@ function VideoLesson({ videoUrl }: { videoUrl: string | null }) {
     );
   }
 
+  // HLS stream or direct video — both use <video>
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-black">
-      <video src={videoUrl} controls className="aspect-video w-full" controlsList="nodownload" />
+      <video
+        ref={videoRef}
+        {...(!isHls && { src: videoUrl })}
+        controls
+        className="aspect-video w-full"
+        controlsList="nodownload"
+      />
     </div>
   );
 }
