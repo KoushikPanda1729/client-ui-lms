@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Tag, Divider, Progress, Spin, message } from "antd";
+import { Button, Tag, Divider, Progress, Spin, message, Modal } from "antd";
 import {
   ArrowLeftOutlined,
   BookOutlined,
@@ -16,6 +16,8 @@ import {
   LockOutlined,
   TrophyOutlined,
   CheckOutlined,
+  TagOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 import { courseService, CourseDetail, Lesson } from "@/lib/services/course";
 
@@ -43,6 +45,21 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponsModalOpen, setCouponsModalOpen] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<
+    { code: string; discountPercent: number; expiresAt: string | null }[]
+  >([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discountPercent: number;
+    discountAmount: number;
+    finalPrice: number;
+    priceToken: string;
+  } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
   const fetchCourse = useCallback(async () => {
@@ -60,12 +77,72 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
     fetchCourse();
   }, [fetchCourse]);
 
+  const handleApplyCoupon = async () => {
+    if (!course || !couponCode.trim()) return;
+    setApplyingCoupon(true);
+    setCouponError(null);
+    try {
+      const quote = await courseService.getPriceQuote(course.id, couponCode.trim());
+      if (!quote.discountPercent) {
+        setCouponError("This coupon doesn't apply to this course");
+        return;
+      }
+      setAppliedCoupon({
+        code: couponCode.trim().toUpperCase(),
+        discountPercent: quote.discountPercent,
+        discountAmount: quote.discountAmount,
+        finalPrice: quote.price,
+        priceToken: quote.priceToken,
+      });
+      setCouponCode("");
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        "Invalid or expired coupon code";
+      setCouponError(msg);
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError(null);
+  };
+
+  const handleOpenCoupons = async () => {
+    if (!course) return;
+    setCouponsModalOpen(true);
+    if (availableCoupons.length > 0) return; // already loaded
+    setLoadingCoupons(true);
+    try {
+      const data = await courseService.getAvailableCoupons(course.id);
+      setAvailableCoupons(data);
+    } catch {
+      // silently ignore — modal will show empty state
+    } finally {
+      setLoadingCoupons(false);
+    }
+  };
+
+  const handleUseCoupon = (code: string) => {
+    setCouponCode(code);
+    setCouponError(null);
+    setCouponsModalOpen(false);
+  };
+
   const handleBuyCourse = async () => {
     if (!course) return;
     setEnrolling(true);
     try {
-      const quote = await courseService.getPriceQuote(course.id);
-      const { checkoutUrl } = await courseService.createCheckout(course.id, quote.priceToken);
+      let priceToken: string;
+      if (appliedCoupon) {
+        priceToken = appliedCoupon.priceToken;
+      } else {
+        const quote = await courseService.getPriceQuote(course.id);
+        priceToken = quote.priceToken;
+      }
+      const { checkoutUrl } = await courseService.createCheckout(course.id, priceToken);
       window.location.href = checkoutUrl;
     } catch (err: unknown) {
       const msg =
@@ -337,12 +414,142 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           <div>
             <div className="sticky top-20 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-lg shadow-black/5">
               {/* Price */}
-              <div className="mb-1 text-3xl font-bold text-indigo-600">
-                {isPremium ? priceLabel : "Free"}
+              <div className="mb-1 flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-indigo-600">
+                  {isPremium
+                    ? appliedCoupon
+                      ? formatPrice(appliedCoupon.finalPrice)
+                      : priceLabel
+                    : "Free"}
+                </span>
+                {appliedCoupon && (
+                  <span className="text-base font-medium text-zinc-400 line-through">
+                    {priceLabel}
+                  </span>
+                )}
               </div>
-              {isPremium && (
+              {isPremium && !appliedCoupon && (
                 <p className="mb-4 text-xs text-zinc-400">One-time purchase · Lifetime access</p>
               )}
+              {appliedCoupon && (
+                <p className="mb-4 text-xs font-semibold text-emerald-600">
+                  You save ₹{appliedCoupon.discountAmount} ({appliedCoupon.discountPercent}% off)
+                </p>
+              )}
+
+              {/* Coupon section — only for unenrolled premium courses */}
+              {isPremium && !enrolled && (
+                <div className="mb-4">
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <TagOutlined className="text-sm text-emerald-600" />
+                        <div>
+                          <p className="text-xs font-bold text-emerald-700">{appliedCoupon.code}</p>
+                          <p className="text-[10px] text-emerald-600">Coupon applied</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-500 transition hover:bg-emerald-200"
+                      >
+                        <CloseOutlined style={{ fontSize: 9 }} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={couponCode}
+                          onChange={(e) => {
+                            setCouponCode(e.target.value.toUpperCase());
+                            setCouponError(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleApplyCoupon();
+                          }}
+                          placeholder="Have a coupon code?"
+                          className="flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800 transition outline-none placeholder:text-zinc-400 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200"
+                        />
+                        <button
+                          onClick={handleApplyCoupon}
+                          disabled={!couponCode.trim() || applyingCoupon}
+                          className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {applyingCoupon ? "..." : "Apply"}
+                        </button>
+                      </div>
+                      {couponError && <p className="mt-1.5 text-xs text-red-500">{couponError}</p>}
+                      <button
+                        onClick={handleOpenCoupons}
+                        className="mt-1.5 text-xs text-indigo-500 hover:text-indigo-700 hover:underline"
+                      >
+                        See available coupons
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Available coupons modal */}
+              <Modal
+                title={
+                  <span className="flex items-center gap-2 font-semibold text-zinc-900">
+                    <TagOutlined className="text-indigo-500" /> Available Coupons
+                  </span>
+                }
+                open={couponsModalOpen}
+                onCancel={() => setCouponsModalOpen(false)}
+                footer={null}
+                width={420}
+              >
+                {loadingCoupons ? (
+                  <div className="flex justify-center py-8">
+                    <Spin />
+                  </div>
+                ) : availableCoupons.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-zinc-400">
+                    No coupons available for this course right now.
+                  </div>
+                ) : (
+                  <div className="space-y-3 py-2">
+                    {availableCoupons.map((c) => (
+                      <div
+                        key={c.code}
+                        className="flex items-center justify-between rounded-xl border border-dashed border-indigo-200 bg-indigo-50/50 px-4 py-3"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm font-bold tracking-widest text-indigo-700">
+                              {c.code}
+                            </span>
+                            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">
+                              {c.discountPercent}% OFF
+                            </span>
+                          </div>
+                          {c.expiresAt && (
+                            <p className="mt-0.5 text-[10px] text-zinc-400">
+                              Expires{" "}
+                              {new Date(c.expiresAt).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleUseCoupon(c.code)}
+                          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-700 active:scale-95"
+                        >
+                          Use
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Modal>
 
               {/* Action button */}
               {enrolled ? (
@@ -374,7 +581,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     border: "none",
                   }}
                 >
-                  Buy Course — {priceLabel}
+                  Buy Course — {appliedCoupon ? formatPrice(appliedCoupon.finalPrice) : priceLabel}
                 </Button>
               ) : (
                 <Button

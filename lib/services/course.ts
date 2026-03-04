@@ -121,6 +121,13 @@ export const courseService = {
     return res.data.data;
   },
 
+  async getAvailableCoupons(
+    courseId: string,
+  ): Promise<{ code: string; discountPercent: number; expiresAt: string | null }[]> {
+    const res = await api.get(`/payments/courses/${courseId}/coupons`);
+    return res.data.data;
+  },
+
   async getPriceQuote(
     courseId: string,
     couponCode?: string,
