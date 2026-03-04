@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -43,6 +43,7 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
     muted,
     duration,
     messages,
+    isPartnerTyping,
     speakerOn,
     videoEnabled,
     remoteVideoEnabled,
@@ -55,10 +56,35 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
     toggleVideo,
     toggleSpeaker,
     sendMessage,
+    sendTyping,
   } = useAudioCall();
 
   const [chatInput, setChatInput] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
+  const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTypingInput = useCallback(
+    (value: string) => {
+      setChatInput(value);
+      if (value.length > 0) {
+        sendTyping(true);
+        if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+        typingDebounceRef.current = setTimeout(() => sendTyping(false), 1500);
+      } else {
+        if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+        sendTyping(false);
+      }
+    },
+    [sendTyping],
+  );
+
+  const handleSend = useCallback(() => {
+    if (!chatInput.trim()) return;
+    sendMessage(chatInput.trim());
+    setChatInput("");
+    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+    sendTyping(false);
+  }, [chatInput, sendMessage, sendTyping]);
   const [videoRequestDismissed, setVideoRequestDismissed] = useState(false);
   const [prevRemoteVideoEnabled, setPrevRemoteVideoEnabled] = useState(false);
   // swapped: when true, local feed is the BG and remote feed is the PiP
@@ -94,7 +120,7 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
     if (chatScrollRef.current && chatOpen) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
-  }, [messages, chatOpen]);
+  }, [messages, isPartnerTyping, chatOpen]);
 
   // Sync video streams → elements (swap-aware)
   // PiP slot (localVideoRef):  local stream normally, remote stream when swapped
@@ -453,18 +479,79 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                           </p>
                         )}
                         <div
-                          className={`max-w-[88%] px-3.5 py-2.5 text-sm leading-snug ${
+                          className={`max-w-[88%] px-3.5 py-2 text-sm leading-snug ${
                             msg.fromMe
                               ? "rounded-2xl rounded-br-sm bg-indigo-500 font-medium text-white"
                               : "rounded-2xl rounded-bl-sm bg-white/12 text-white"
                           }`}
                         >
-                          {msg.text}
+                          <p>{msg.text}</p>
+                          {msg.fromMe && (
+                            <div className="mt-0.5 flex items-center justify-end gap-0.5">
+                              {msg.status === "delivered" ? (
+                                /* Double tick — delivered */
+                                <svg
+                                  width="16"
+                                  height="9"
+                                  viewBox="0 0 16 9"
+                                  fill="none"
+                                  className="text-white/80"
+                                >
+                                  <path
+                                    d="M1 4.5L3.8 7L9 1"
+                                    stroke="currentColor"
+                                    strokeWidth="1.4"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M5 4.5L7.8 7L13 1"
+                                    stroke="currentColor"
+                                    strokeWidth="1.4"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              ) : (
+                                /* Single tick — sent */
+                                <svg
+                                  width="10"
+                                  height="9"
+                                  viewBox="0 0 10 9"
+                                  fill="none"
+                                  className="text-white/50"
+                                >
+                                  <path
+                                    d="M1 4.5L3.8 7L9 1"
+                                    stroke="currentColor"
+                                    strokeWidth="1.4"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))
                   )}
                 </div>
+
+                {/* Typing indicator */}
+                {isPartnerTyping && (
+                  <div className="flex items-start px-4 pb-1">
+                    <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-white/12 px-3.5 py-2.5">
+                      {[0, 1, 2].map((i) => (
+                        <span
+                          key={i}
+                          className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/50"
+                          style={{ animationDelay: `${i * 0.18}s`, animationDuration: "0.9s" }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Input */}
                 <div className="shrink-0 border-t border-white/10 px-3 py-3">
@@ -472,23 +559,15 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                     <input
                       type="text"
                       value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
+                      onChange={(e) => handleTypingInput(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && chatInput.trim()) {
-                          sendMessage(chatInput.trim());
-                          setChatInput("");
-                        }
+                        if (e.key === "Enter") handleSend();
                       }}
                       placeholder="Type a message..."
                       className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/30"
                     />
                     <button
-                      onClick={() => {
-                        if (chatInput.trim()) {
-                          sendMessage(chatInput.trim());
-                          setChatInput("");
-                        }
-                      }}
+                      onClick={handleSend}
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500 transition hover:bg-indigo-400 active:scale-90 disabled:opacity-40"
                       disabled={!chatInput.trim()}
                     >

@@ -19,6 +19,8 @@ export interface ChatMessage {
   fromMe: boolean;
   senderName: string;
   timestamp: number;
+  /** Only set on fromMe messages: "sent" = server received; "delivered" = partner got it */
+  status?: "sent" | "delivered";
 }
 
 interface MatchFoundPayload {
@@ -52,6 +54,7 @@ export function useAudioCall() {
   const [duration, setDuration] = useState(0);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [speakerOn, setSpeakerOn] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(false);
   const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
@@ -66,6 +69,7 @@ export function useAudioCall() {
   const localVideoStreamRef = useRef<MediaStream | null>(null);
   const remoteVideoStreamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const partnerTypingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
   // Resolves when local mic stream is added to the PC — receiver waits on this
   const localMediaReadyRef = useRef<Promise<void>>(Promise.resolve());
@@ -112,6 +116,11 @@ export function useAudioCall() {
     pendingCandidates.current = [];
     localMediaReadyRef.current = Promise.resolve();
     setDuration(0);
+    setIsPartnerTyping(false);
+    if (partnerTypingTimerRef.current) {
+      clearTimeout(partnerTypingTimerRef.current);
+      partnerTypingTimerRef.current = null;
+    }
   }, [stopTimer, stopLocalStream, closePeerConnection]);
 
   // Cleanup on unmount
@@ -344,6 +353,30 @@ export function useAudioCall() {
             timestamp: Date.now(),
           },
         ]);
+        // Ack delivery so sender gets double-tick
+        if (socketRef.current && roomIdRef.current) {
+          socketRef.current.emit("message_delivered", {
+            roomId: roomIdRef.current,
+            messageId: payload.messageId,
+          });
+        }
+      });
+
+      // Partner's delivery ack → upgrade our sent message to double-tick
+      socket.on("message_delivered", ({ messageId }: { messageId: string }) => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, status: "delivered" } : m)),
+        );
+      });
+
+      // Partner typing indicator
+      socket.on("typing", ({ isTyping }: { isTyping: boolean }) => {
+        setIsPartnerTyping(isTyping);
+        // Auto-clear after 3s in case the "stop typing" event is dropped
+        if (partnerTypingTimerRef.current) clearTimeout(partnerTypingTimerRef.current);
+        if (isTyping) {
+          partnerTypingTimerRef.current = setTimeout(() => setIsPartnerTyping(false), 3000);
+        }
       });
     },
     [
@@ -377,7 +410,10 @@ export function useAudioCall() {
       socket.off("error");
       socket.off("connect_error");
       socket.off("chat_message");
+      socket.off("message_delivered");
+      socket.off("typing");
       setMessages([]);
+      setIsPartnerTyping(false);
 
       setupSocketEvents(socket);
 
@@ -489,8 +525,22 @@ export function useAudioCall() {
     socket.emit("chat_message", { roomId, text: text.trim(), messageId });
     setMessages((prev) => [
       ...prev,
-      { id: messageId, text: text.trim(), fromMe: true, senderName: "You", timestamp: Date.now() },
+      {
+        id: messageId,
+        text: text.trim(),
+        fromMe: true,
+        senderName: "You",
+        timestamp: Date.now(),
+        status: "sent",
+      },
     ]);
+  }, []);
+
+  const sendTyping = useCallback((isTyping: boolean) => {
+    const socket = socketRef.current;
+    const roomId = roomIdRef.current;
+    if (!socket || !roomId) return;
+    socket.emit("typing", { roomId, isTyping });
   }, []);
 
   return {
@@ -501,6 +551,7 @@ export function useAudioCall() {
     duration,
     audioBlocked,
     messages,
+    isPartnerTyping,
     speakerOn,
     videoEnabled,
     remoteVideoEnabled,
@@ -514,5 +565,6 @@ export function useAudioCall() {
     resumeAudio,
     toggleSpeaker,
     sendMessage,
+    sendTyping,
   };
 }
