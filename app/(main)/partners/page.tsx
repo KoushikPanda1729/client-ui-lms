@@ -13,9 +13,11 @@ import {
   MessageOutlined,
   VideoCameraOutlined,
   CloseOutlined,
+  StarFilled,
 } from "@ant-design/icons";
 import { useAudioCall } from "@/hooks/useAudioCall";
 import { useCall } from "@/contexts/CallContext";
+import { sessionService } from "@/lib/services/session";
 
 /* ══════════════════════════════════════════
    Format seconds → MM:SS
@@ -45,6 +47,7 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
     remoteVideoEnabled,
     localVideoStreamRef,
     remoteVideoStreamRef,
+    lastRoomId,
     startSearch,
     cancelSearch,
     endCall,
@@ -54,6 +57,53 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
     sendMessage,
     sendTyping,
   } = useAudioCall();
+
+  // ── Review state ────────────────────────────────────────────────────────────
+  const [reviewSessionId, setReviewSessionId] = useState<string | null>(null);
+  const [reviewDone, setReviewDone] = useState(false);
+  const [reviewStars, setReviewStars] = useState(0);
+  const [reviewFeedback, setReviewFeedback] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
+
+  // When a call ends (lastRoomId set), look up the session ID for rating
+  useEffect(() => {
+    if (!lastRoomId) return;
+    setReviewDone(false);
+    setReviewStars(0);
+    setReviewFeedback("");
+    setReviewSessionId(null);
+    sessionService
+      .getByRoom(lastRoomId)
+      .then((s) => {
+        // Only show review prompt if the session actually ended
+        if (s.endedAt) setReviewSessionId(s.id);
+        else {
+          // Poll once more after a short delay — server may still be marking ended
+          setTimeout(() => {
+            sessionService
+              .getByRoom(lastRoomId)
+              .then((s2) => {
+                if (s2.endedAt) setReviewSessionId(s2.id);
+              })
+              .catch(() => {});
+          }, 2000);
+        }
+      })
+      .catch(() => {});
+  }, [lastRoomId]);
+
+  const handleSubmitReview = useCallback(async () => {
+    if (!reviewSessionId || reviewStars === 0) return;
+    setReviewLoading(true);
+    try {
+      await sessionService.rate(reviewSessionId, reviewStars, reviewFeedback || undefined);
+    } catch {
+      // silent — don't block user
+    } finally {
+      setReviewLoading(false);
+      setReviewDone(true);
+    }
+  }, [reviewSessionId, reviewStars, reviewFeedback]);
 
   const [chatInput, setChatInput] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
@@ -143,9 +193,16 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
   }, [videoEnabled, remoteVideoEnabled, localVideoStreamRef, remoteVideoStreamRef, swapped]);
 
   const handleEndOrCancel = () => {
-    if (phase === "searching" || phase === "matched") cancelSearch();
-    else endCall();
-    onClose();
+    if (phase === "searching" || phase === "matched") {
+      cancelSearch();
+      onClose();
+    } else if (phase === "connected") {
+      // endCall will set phase → "ended" so the review modal shows inside the overlay
+      endCall();
+    } else {
+      endCall();
+      onClose();
+    }
   };
 
   if (!open) return null;
@@ -316,8 +373,7 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                 e.currentTarget.setPointerCapture(e.pointerId);
                 const rect = containerRef.current?.getBoundingClientRect();
                 if (!rect) return;
-                const PIP_W = 96,
-                  PIP_H = 144;
+                const PIP_W = 96;
                 pipDragState.current = {
                   startPointerX: e.clientX,
                   startPointerY: e.clientY,
@@ -673,7 +729,7 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
 
       {/* ══ ENDED ══ */}
       {phase === "ended" && (
-        <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+        <div className="relative flex flex-1 flex-col items-center justify-center px-8 text-center">
           <div className="mb-5 flex h-24 w-24 items-center justify-center rounded-full bg-white/10 text-5xl">
             {errorMsg ? "⚠️" : "👋"}
           </div>
@@ -706,6 +762,67 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
               Close
             </button>
           </div>
+
+          {/* ── Review overlay (shows on top when session is ready) ── */}
+          {reviewSessionId && !reviewDone && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 px-6 backdrop-blur-sm">
+              <div
+                className="w-full max-w-sm rounded-3xl p-6 shadow-2xl"
+                style={{
+                  background: "rgba(15,15,35,0.97)",
+                  border: "1px solid rgba(255,255,255,0.10)",
+                }}
+              >
+                <p className="mb-1 text-lg font-bold text-white">Rate your session</p>
+                <p className="mb-5 text-xs text-white/40">How was your conversation partner?</p>
+
+                {/* Stars */}
+                <div className="mb-5 flex justify-center gap-3">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setReviewStars(n)}
+                      className="transition-transform active:scale-90"
+                    >
+                      <StarFilled
+                        style={{
+                          fontSize: 32,
+                          color: n <= reviewStars ? "#facc15" : "rgba(255,255,255,0.15)",
+                          transition: "color 0.15s",
+                        }}
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Feedback textarea */}
+                <textarea
+                  value={reviewFeedback}
+                  onChange={(e) => setReviewFeedback(e.target.value)}
+                  placeholder="Leave a comment (optional)..."
+                  maxLength={500}
+                  rows={3}
+                  className="mb-4 w-full resize-none rounded-xl bg-white/8 px-4 py-3 text-sm text-white ring-1 ring-white/10 transition outline-none placeholder:text-white/30 focus:ring-indigo-500/60"
+                />
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setReviewDone(true)}
+                    className="flex-1 rounded-xl bg-white/10 py-2.5 text-sm font-semibold text-white/60 transition hover:bg-white/15"
+                  >
+                    Skip
+                  </button>
+                  <button
+                    onClick={handleSubmitReview}
+                    disabled={reviewStars === 0 || reviewLoading}
+                    className="flex-1 rounded-xl bg-indigo-500 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-400 disabled:opacity-40"
+                  >
+                    {reviewLoading ? "Submitting..." : "Submit"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -722,6 +839,321 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
         }
       `}</style>
     </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   How It Works — auto-progressing stepper
+   ══════════════════════════════════════════ */
+const STEPS = [
+  {
+    emoji: "👆",
+    title: "Press Connect",
+    desc: "Tap the button to enter the queue",
+    color: "#6366f1",
+  },
+  { emoji: "🔗", title: "Get Matched", desc: "Paired with a speaker in seconds", color: "#8b5cf6" },
+  { emoji: "🗣️", title: "Start Talking", desc: "Jump into a real conversation", color: "#a855f7" },
+];
+
+const STEP_DURATION = 3000;
+
+function HowItWorks() {
+  const [active, setActive] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    // Animate progress from 0→100 over STEP_DURATION, then jump to next step
+    let raf: number;
+    let start: number;
+
+    const animate = (ts: number) => {
+      if (!start) start = ts;
+      const elapsed = ts - start;
+      const pct = Math.min((elapsed / STEP_DURATION) * 100, 100);
+      setProgress(pct);
+
+      if (elapsed >= STEP_DURATION) {
+        setActive((prev) => (prev + 1) % STEPS.length);
+        start = ts;
+        setProgress(0);
+      }
+      raf = requestAnimationFrame(animate);
+    };
+
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // SVG ring circumference for timer
+  const RADIUS = 28;
+  const CIRC = 2 * Math.PI * RADIUS;
+
+  return (
+    <section className="border-t border-zinc-100 bg-zinc-50/50 py-12 sm:py-16">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6">
+        <h2 className="mb-2 text-center text-xl font-bold text-zinc-900 sm:text-2xl">
+          How it works
+        </h2>
+        <p className="mx-auto mb-10 max-w-md text-center text-xs text-zinc-400 sm:mb-14 sm:text-sm">
+          Three simple steps to start practicing
+        </p>
+
+        {/* ── Stepper ── */}
+        <div className="relative mx-auto flex max-w-md items-start justify-between overflow-visible sm:max-w-none">
+          {/* Track line */}
+          <div className="absolute top-5 right-[16.6%] left-[16.6%] z-0 h-[2px] bg-zinc-200 sm:top-7" />
+          {/* Filled track */}
+          <div
+            className="absolute top-5 left-[16.6%] z-[1] h-[2px] bg-gradient-to-r from-indigo-500 to-violet-500 sm:top-7"
+            style={{
+              width: `${active === 0 ? 0 : active === 1 ? 50 : 100}%`,
+              maxWidth: "66.6%",
+              transition: "width 0.6s ease-in-out",
+            }}
+          />
+
+          {STEPS.map((step, i) => {
+            const isDone = i < active;
+            const isCurrent = i === active;
+
+            return (
+              <div
+                key={step.title}
+                className="relative z-10 flex w-1/3 flex-col items-center text-center"
+              >
+                {/* Glow behind active */}
+                {isCurrent && (
+                  <div
+                    className="absolute top-0 h-10 w-10 animate-pulse rounded-full sm:h-14 sm:w-14"
+                    style={{
+                      background: `radial-gradient(circle, ${step.color}30 0%, transparent 70%)`,
+                      transform: "scale(2)",
+                    }}
+                  />
+                )}
+
+                {/* Circle with SVG timer ring */}
+                <div className="relative flex h-10 w-10 items-center justify-center sm:h-14 sm:w-14">
+                  {/* Timer ring (only on active) */}
+                  {isCurrent && (
+                    <svg className="absolute inset-0 -rotate-90" viewBox="0 0 60 60">
+                      <circle
+                        cx="30"
+                        cy="30"
+                        r={RADIUS}
+                        fill="none"
+                        stroke={step.color}
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeDasharray={CIRC}
+                        strokeDashoffset={CIRC - (progress / 100) * CIRC}
+                        className="opacity-60"
+                      />
+                    </svg>
+                  )}
+
+                  <div
+                    className={`relative flex h-8 w-8 items-center justify-center rounded-full text-base transition-all duration-500 sm:h-12 sm:w-12 sm:text-xl ${
+                      isCurrent
+                        ? "scale-105 shadow-lg"
+                        : isDone
+                          ? "shadow-md"
+                          : "bg-white shadow-sm ring-1 ring-zinc-200"
+                    }`}
+                    style={
+                      isCurrent || isDone
+                        ? { background: `linear-gradient(135deg, ${step.color}, ${step.color}cc)` }
+                        : undefined
+                    }
+                  >
+                    {isDone ? (
+                      <CheckCircleFilled className="text-sm text-white sm:text-lg" />
+                    ) : (
+                      <span className={isCurrent ? "drop-shadow" : "opacity-60 grayscale"}>
+                        {step.emoji}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Floating card behind active step */}
+                <div
+                  className={`mt-2 rounded-lg px-2 py-2 transition-all duration-500 sm:mt-4 sm:rounded-xl sm:px-4 sm:py-3 ${
+                    isCurrent
+                      ? "translate-y-0 bg-white opacity-100 shadow-lg ring-1 ring-zinc-100"
+                      : "translate-y-1 opacity-100"
+                  }`}
+                >
+                  <h3
+                    className={`text-xs font-bold transition-colors duration-300 sm:text-sm ${
+                      isCurrent ? "text-indigo-600" : isDone ? "text-zinc-700" : "text-zinc-400"
+                    }`}
+                  >
+                    {step.title}
+                  </h3>
+                  <p
+                    className={`mt-0.5 hidden text-xs leading-relaxed transition-all duration-300 sm:block ${
+                      isCurrent
+                        ? "max-h-10 text-zinc-500 opacity-100"
+                        : "max-h-10 text-zinc-400 opacity-70"
+                    }`}
+                  >
+                    {step.desc}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Phone mockup ── */}
+        <div className="mt-10 flex justify-center sm:mt-14">
+          <div className="relative w-[180px] sm:w-[220px]">
+            {/* Phone frame */}
+            <div
+              className="relative overflow-hidden rounded-[1.5rem] border-[3px] border-zinc-800 bg-zinc-900 shadow-2xl sm:rounded-[2rem]"
+              style={{ aspectRatio: "9/19" }}
+            >
+              {/* Notch */}
+              <div className="absolute top-0 left-1/2 z-20 h-5 w-20 -translate-x-1/2 rounded-b-xl bg-zinc-800 sm:h-6 sm:w-24 sm:rounded-b-2xl" />
+              {/* Status bar */}
+              <div className="absolute top-0 right-0 left-0 z-10 flex items-center justify-between px-5 pt-1.5 text-[7px] font-semibold text-white/50 sm:px-6 sm:pt-2 sm:text-[8px]">
+                <span>9:41</span>
+                <span>●●●</span>
+              </div>
+
+              {/* Screen content — transitions based on step */}
+              <div className="relative h-full w-full overflow-hidden">
+                {/* Step 1: Connect screen */}
+                <div
+                  className={`absolute inset-0 flex flex-col items-center justify-center px-4 transition-all duration-500 ${
+                    active === 0 ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0"
+                  }`}
+                  style={{ background: "linear-gradient(160deg, #16163a 0%, #0a0a18 100%)" }}
+                >
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-2xl sm:mb-4 sm:h-16 sm:w-16 sm:text-3xl">
+                    🎧
+                  </div>
+                  <p className="mb-1 text-[10px] font-bold text-white sm:text-xs">
+                    Ready to practice?
+                  </p>
+                  <p className="mb-4 text-[8px] text-white/40 sm:mb-5 sm:text-[9px]">
+                    Find a partner instantly
+                  </p>
+                  <div className="rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-1.5 text-[9px] font-bold text-white shadow-lg shadow-indigo-500/30 sm:rounded-xl sm:px-6 sm:py-2 sm:text-[10px]">
+                    Connect Now
+                  </div>
+                </div>
+
+                {/* Step 2: Searching screen */}
+                <div
+                  className={`absolute inset-0 flex flex-col items-center justify-center px-4 transition-all duration-500 ${
+                    active === 1
+                      ? "translate-x-0 opacity-100"
+                      : active === 0
+                        ? "translate-x-full opacity-0"
+                        : "-translate-x-full opacity-0"
+                  }`}
+                  style={{ background: "linear-gradient(160deg, #16163a 0%, #0a0a18 100%)" }}
+                >
+                  <div className="relative mb-4 h-16 w-16 sm:mb-5 sm:h-20 sm:w-20">
+                    <span className="absolute inset-0 animate-ping rounded-full bg-indigo-500/15 [animation-duration:2s]" />
+                    <span className="absolute inset-2 animate-ping rounded-full bg-indigo-500/10 [animation-delay:0.5s] [animation-duration:2s]" />
+                    <div className="relative flex h-full w-full items-center justify-center rounded-full bg-white/10 text-2xl ring-1 ring-white/15 sm:text-3xl">
+                      🔍
+                    </div>
+                  </div>
+                  <p className="mb-1 text-[10px] font-bold text-white sm:text-xs">
+                    Finding Partner
+                  </p>
+                  <p className="mb-2 text-[8px] text-white/40 sm:mb-3 sm:text-[9px]">
+                    Matching you with a speaker...
+                  </p>
+                  <div className="flex gap-1">
+                    {[0, 1, 2, 3].map((j) => (
+                      <span
+                        key={j}
+                        className="h-1 w-1 animate-bounce rounded-full bg-white/30"
+                        style={{ animationDelay: `${j * 0.15}s` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Step 3: Connected/call screen */}
+                <div
+                  className={`absolute inset-0 flex flex-col items-center justify-center px-4 transition-all duration-500 ${
+                    active === 2 ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
+                  }`}
+                  style={{ background: "linear-gradient(160deg, #16163a 0%, #0a0a18 100%)" }}
+                >
+                  <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 ring-1 ring-white/10 sm:mb-3">
+                    <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
+                    <span className="text-[7px] font-semibold tracking-wide text-white/60 uppercase sm:text-[8px]">
+                      Connected
+                    </span>
+                  </div>
+                  <div className="relative mb-2 h-12 w-12 sm:h-16 sm:w-16">
+                    <div className="flex h-full w-full items-center justify-center rounded-full bg-white/10 text-2xl ring-2 ring-white/20 sm:text-3xl">
+                      👤
+                    </div>
+                    <span className="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full border-2 border-zinc-900 bg-emerald-400 sm:right-0.5 sm:bottom-0.5 sm:h-3 sm:w-3" />
+                  </div>
+                  <p className="text-[10px] font-bold text-white sm:text-xs">Sarah M.</p>
+                  <p className="text-[8px] text-white/40 sm:text-[9px]">Intermediate Level</p>
+                  <div className="mt-1.5 mb-3 inline-flex items-center gap-1 rounded-full bg-black/35 px-2 py-0.5 ring-1 ring-white/10 sm:mt-2 sm:mb-4 sm:px-2.5">
+                    <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
+                    <span className="font-mono text-[9px] font-bold text-white sm:text-[10px]">
+                      02:47
+                    </span>
+                  </div>
+                  {/* Audio wave */}
+                  <div className="mb-4 flex h-4 items-end gap-[2px] sm:mb-5 sm:h-5">
+                    {Array.from({ length: 16 }).map((_, j) => (
+                      <span
+                        key={j}
+                        className="w-[2px] rounded-full"
+                        style={{
+                          height: `${6 + Math.sin(j * 0.8) * 6}px`,
+                          background: `rgba(255,255,255,${0.2 + Math.sin(j * 0.5) * 0.15})`,
+                          animation: `waveBar 1.4s ease-in-out ${(j * 0.055) % 0.7}s infinite alternate`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  {/* Controls */}
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-[9px] text-white sm:h-8 sm:w-8 sm:text-[10px]">
+                      <AudioOutlined />
+                    </div>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-[10px] text-white shadow-lg shadow-red-500/40 sm:h-10 sm:w-10 sm:text-xs">
+                      <PhoneOutlined className="rotate-[135deg]" />
+                    </div>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-[9px] text-white sm:h-8 sm:w-8 sm:text-[10px]">
+                      <MessageOutlined />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Home indicator */}
+              <div className="absolute bottom-1 left-1/2 z-20 h-0.5 w-8 -translate-x-1/2 rounded-full bg-white/20 sm:bottom-1.5 sm:h-1 sm:w-10" />
+            </div>
+
+            {/* Phone reflection/shadow */}
+            <div className="absolute -bottom-3 left-1/2 h-5 w-[140px] -translate-x-1/2 rounded-[50%] bg-zinc-900/10 blur-xl sm:-bottom-4 sm:h-6 sm:w-[180px]" />
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes waveBar {
+          from { transform: scaleY(0.5); opacity: 0.45; }
+          to   { transform: scaleY(1);   opacity: 1; }
+        }
+      `}</style>
+    </section>
   );
 }
 
@@ -792,45 +1224,7 @@ export default function PartnersPage() {
       </section>
 
       {/* ── How it works ── */}
-      <section className="border-t border-zinc-100 bg-zinc-50/50 py-16">
-        <div className="mx-auto max-w-4xl px-6">
-          <h2 className="mb-10 text-center text-2xl font-bold text-zinc-900">How it works</h2>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {[
-              {
-                num: "1",
-                emoji: "👆",
-                title: "Press Connect",
-                desc: "Tap the button to enter the matching queue.",
-              },
-              {
-                num: "2",
-                emoji: "🔗",
-                title: "Get Matched",
-                desc: "Our system pairs you with a speaker in seconds.",
-              },
-              {
-                num: "3",
-                emoji: "🗣️",
-                title: "Start Talking",
-                desc: "Jump straight into a real English conversation.",
-              },
-            ].map((s) => (
-              <div
-                key={s.num}
-                className="flex flex-col items-center rounded-2xl border border-zinc-100 bg-white p-6 text-center shadow-sm transition-all hover:shadow-md"
-              >
-                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-50 text-2xl">
-                  {s.emoji}
-                </div>
-                <span className="mb-1 text-xs font-bold text-indigo-500">Step {s.num}</span>
-                <h3 className="mb-1 text-sm font-bold text-zinc-900">{s.title}</h3>
-                <p className="text-xs leading-relaxed text-zinc-500">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HowItWorks />
 
       {/* ── Audio Call Modal ── */}
       <AudioCallModal open={modalOpen} onClose={closeModal} />

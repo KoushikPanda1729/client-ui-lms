@@ -18,6 +18,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/courses", label: "Courses" },
   { href: "/partners", label: "Find Partners" },
+  { href: "/sessions", label: "My Sessions" },
 ];
 
 export default function Navbar() {

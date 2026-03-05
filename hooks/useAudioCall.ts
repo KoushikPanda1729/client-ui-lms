@@ -58,6 +58,8 @@ export function useAudioCall() {
   const [speakerOn, setSpeakerOn] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(false);
   const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
+  // Tracks the last completed call's roomId so the UI can prompt for a review
+  const [lastRoomId, setLastRoomId] = useState<string | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -73,6 +75,8 @@ export function useAudioCall() {
   const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
   // Resolves when local mic stream is added to the PC — receiver waits on this
   const localMediaReadyRef = useRef<Promise<void>>(Promise.resolve());
+  // True once WebRTC peer connection reaches "connected" state
+  const wasConnectedRef = useRef(false);
 
   // ─── Cleanup ───────────────────────────────────────────────────────────────
 
@@ -179,6 +183,7 @@ export function useAudioCall() {
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
         if (state === "connected") {
+          wasConnectedRef.current = true;
           setPhase("connected");
           timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
         } else if (state === "failed") {
@@ -320,6 +325,10 @@ export function useAudioCall() {
 
       // Peer disconnected or ended the call
       socket.on("peer_left", () => {
+        if (wasConnectedRef.current && roomIdRef.current) {
+          setLastRoomId(roomIdRef.current);
+        }
+        wasConnectedRef.current = false;
         setErrorMsg("Partner ended the call");
         setPhase("ended");
         stopTimer();
@@ -394,6 +403,8 @@ export function useAudioCall() {
   const startSearch = useCallback(
     (level?: string) => {
       setErrorMsg(null);
+      setLastRoomId(null);
+      wasConnectedRef.current = false;
       setPhase("searching");
 
       const socket = getSocket();
@@ -436,13 +447,26 @@ export function useAudioCall() {
   }, [fullCleanup]);
 
   const endCall = useCallback(() => {
-    if (roomIdRef.current && socketRef.current) {
-      socketRef.current.emit("end_call", { roomId: roomIdRef.current });
+    const roomId = roomIdRef.current;
+    const wasConn = wasConnectedRef.current;
+    wasConnectedRef.current = false;
+
+    if (roomId && socketRef.current) {
+      socketRef.current.emit("end_call", { roomId });
     }
-    fullCleanup();
-    setPhase("idle");
-    partnerRef.current = null;
-    setPartner(null);
+
+    if (wasConn && roomId) {
+      setLastRoomId(roomId);
+      fullCleanup();
+      partnerRef.current = null;
+      setPartner(null);
+      setPhase("ended");
+    } else {
+      fullCleanup();
+      partnerRef.current = null;
+      setPartner(null);
+      setPhase("idle");
+    }
   }, [fullCleanup]);
 
   const toggleMute = useCallback(() => {
@@ -557,6 +581,7 @@ export function useAudioCall() {
     remoteVideoEnabled,
     localVideoStreamRef,
     remoteVideoStreamRef,
+    lastRoomId,
     startSearch,
     cancelSearch,
     endCall,
