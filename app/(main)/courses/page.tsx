@@ -1,59 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { Input, Select, Empty, Button, Skeleton, Progress } from "antd";
+import { Input, Select, Empty, Button } from "antd";
 import {
   BookOutlined,
-  ClockCircleOutlined,
   SearchOutlined,
   FilterOutlined,
-  PlayCircleOutlined,
   ArrowRightOutlined,
-  CheckCircleFilled,
-  LockOutlined,
 } from "@ant-design/icons";
 import { courseService, Course } from "@/lib/services/course";
-
-const LEVEL_CONFIG = {
-  beginner: {
-    gradient: "from-emerald-400 to-teal-500",
-    badge: "bg-white/25",
-    emoji: "📚",
-  },
-  intermediate: {
-    gradient: "from-blue-400 to-indigo-500",
-    badge: "bg-white/25",
-    emoji: "💼",
-  },
-  advanced: {
-    gradient: "from-rose-400 to-pink-500",
-    badge: "bg-white/25",
-    emoji: "🎯",
-  },
-} as const;
-
-const DEFAULT_CONFIG = {
-  gradient: "from-indigo-400 to-violet-500",
-  badge: "bg-white/25",
-  emoji: "📖",
-};
-
-function formatPrice(price: number): string {
-  if (price === 0) return "Free";
-  return `₹${price}`;
-}
-
-function CourseCardSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-100 bg-white">
-      <Skeleton.Image active className="!h-44 !w-full rounded-none" />
-      <div className="p-5">
-        <Skeleton active paragraph={{ rows: 3 }} />
-      </div>
-    </div>
-  );
-}
+import CourseCard, { CourseCardSkeleton } from "@/components/CourseCard";
 
 export default function CoursesPage() {
   const [search, setSearch] = useState("");
@@ -177,109 +133,9 @@ export default function CoursesPage() {
           </div>
         ) : filtered.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((c) => {
-              const cfg = c.level ? LEVEL_CONFIG[c.level] : DEFAULT_CONFIG;
-              const priceLabel = formatPrice(c.price);
-              const enrolled = !!c.enrollment;
-              const progress = c.enrollment?.progressPercent ?? 0;
-
-              return (
-                <Link key={c.id} href={`/courses/${c.id}`} className="no-underline">
-                  <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-zinc-200/60">
-                    {/* Card header — colored gradient */}
-                    <div
-                      className={`relative flex h-44 flex-col justify-between bg-gradient-to-br p-5 ${cfg.gradient}`}
-                    >
-                      {/* Top row: level + price */}
-                      <div className="flex items-start justify-between">
-                        <span className="rounded-lg bg-white/25 px-2.5 py-1 text-[11px] font-bold text-white capitalize backdrop-blur-sm">
-                          {c.level ?? "General"}
-                        </span>
-                        <span
-                          className={`rounded-lg px-2.5 py-1 text-[11px] font-bold text-white ${priceLabel === "Free" ? "bg-white/25 backdrop-blur-sm" : "bg-black/20 backdrop-blur-sm"}`}
-                        >
-                          {c.isPremium && priceLabel !== "Free" && (
-                            <LockOutlined className="mr-1 text-[10px]" />
-                          )}
-                          {priceLabel}
-                        </span>
-                      </div>
-
-                      {/* Emoji / thumbnail */}
-                      <div className="flex items-end justify-between">
-                        {c.thumbnailUrl ? (
-                          <img
-                            src={c.thumbnailUrl}
-                            alt={c.title}
-                            className="h-14 w-14 rounded-xl object-cover shadow-md"
-                          />
-                        ) : (
-                          <span className="text-5xl drop-shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3">
-                            {cfg.emoji}
-                          </span>
-                        )}
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/25 text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:scale-110 group-hover:opacity-100">
-                          <PlayCircleOutlined className="text-lg" />
-                        </div>
-                      </div>
-
-                      {/* Enrolled badge */}
-                      {enrolled && (
-                        <div className="absolute top-0 left-0 m-2">
-                          <span className="flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
-                            <CheckCircleFilled className="text-[10px]" /> Enrolled
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Decorative shapes */}
-                      <div className="pointer-events-none absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10" />
-                      <div className="pointer-events-none absolute bottom-0 left-0 h-24 w-24 -translate-x-6 translate-y-6 rounded-full bg-white/10" />
-                    </div>
-
-                    {/* Card body */}
-                    <div className="flex flex-1 flex-col p-5">
-                      {/* Title & desc */}
-                      <h3 className="mb-1.5 text-[15px] leading-snug font-bold text-zinc-900">
-                        {c.title}
-                      </h3>
-                      <p className="mb-4 line-clamp-2 text-[13px] leading-relaxed text-zinc-500">
-                        {c.description ?? "No description available."}
-                      </p>
-
-                      <div className="mt-auto" />
-
-                      {/* Progress bar if enrolled */}
-                      {enrolled && (
-                        <div className="mb-3">
-                          <div className="mb-1 flex items-center justify-between text-[11px]">
-                            <span className="text-zinc-500">Progress</span>
-                            <span className="font-semibold text-indigo-600">{progress}%</span>
-                          </div>
-                          <Progress
-                            percent={progress}
-                            showInfo={false}
-                            size="small"
-                            strokeColor="#6366f1"
-                            trailColor="#f1f5f9"
-                          />
-                        </div>
-                      )}
-
-                      {/* Meta row */}
-                      <div className="mb-4 flex items-center gap-4 text-[12px] text-zinc-400">
-                        <span className="flex items-center gap-1">
-                          <BookOutlined /> {c.totalLessons} lessons
-                        </span>
-                        <span className="flex items-center gap-1 capitalize">
-                          <ClockCircleOutlined /> {c.level ?? "All levels"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+            {filtered.map((c) => (
+              <CourseCard key={c.id} course={c} />
+            ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-white py-20">

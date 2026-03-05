@@ -2,18 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Button, message, Skeleton } from "antd";
+import { Button, message } from "antd";
 import {
-  PlayCircleOutlined,
-  BookOutlined,
   StarFilled,
   ArrowRightOutlined,
   PhoneOutlined,
-  ClockCircleOutlined,
   ThunderboltOutlined,
-  LockOutlined,
   MobileFilled,
 } from "@ant-design/icons";
 import { GoogleLogin } from "@react-oauth/google";
@@ -526,94 +521,7 @@ function FinalCTA() {
 /* ═══════════════════════════════════════════════
    COURSES SECTION — Real courses from the API
    ═══════════════════════════════════════════════ */
-const LEVEL_CFG = {
-  beginner: { gradient: "from-emerald-400 to-teal-500", emoji: "📚" },
-  intermediate: { gradient: "from-blue-400 to-indigo-500", emoji: "💼" },
-  advanced: { gradient: "from-rose-400 to-pink-500", emoji: "🎯" },
-} as const;
-
-const DEFAULT_CFG = { gradient: "from-indigo-400 to-violet-500", emoji: "📖" };
-
-function formatPrice(price: number): string {
-  if (price === 0) return "Free";
-  return `₹${price}`;
-}
-
-function CourseCardSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-100 bg-white">
-      <div className="h-44 w-full bg-zinc-100" />
-      <div className="p-5">
-        <Skeleton active paragraph={{ rows: 3 }} />
-      </div>
-    </div>
-  );
-}
-
-function CourseCard({ c }: { c: Course }) {
-  const cfg = c.level ? LEVEL_CFG[c.level] : DEFAULT_CFG;
-  const priceLabel = c.isPremium ? formatPrice(c.price) : "Free";
-
-  return (
-    <Link href={`/courses/${c.id}`} className="no-underline">
-      <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-zinc-200/60">
-        {/* Coloured header */}
-        <div
-          className={`relative flex h-44 flex-col justify-between bg-gradient-to-br p-5 ${cfg.gradient}`}
-        >
-          <div className="flex items-start justify-between">
-            <span className="rounded-lg bg-white/25 px-2.5 py-1 text-[11px] font-bold text-white capitalize backdrop-blur-sm">
-              {c.level ?? "General"}
-            </span>
-            <span className="flex items-center gap-1 rounded-lg bg-black/20 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
-              {c.isPremium && priceLabel !== "Free" && <LockOutlined className="text-[10px]" />}
-              {priceLabel}
-            </span>
-          </div>
-
-          <div className="flex items-end justify-between">
-            {c.thumbnailUrl ? (
-              <Image
-                src={c.thumbnailUrl}
-                alt={c.title}
-                width={56}
-                height={56}
-                className="h-14 w-14 rounded-xl object-cover shadow-md"
-              />
-            ) : (
-              <span className="text-5xl drop-shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3">
-                {cfg.emoji}
-              </span>
-            )}
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/25 text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:scale-110 group-hover:opacity-100">
-              <PlayCircleOutlined className="text-lg" />
-            </div>
-          </div>
-
-          {/* Decorative blobs */}
-          <div className="pointer-events-none absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-white/10" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-24 w-24 -translate-x-6 translate-y-6 rounded-full bg-white/10" />
-        </div>
-
-        {/* Body */}
-        <div className="flex flex-1 flex-col p-5">
-          <h3 className="mb-1.5 text-[15px] leading-snug font-bold text-zinc-900">{c.title}</h3>
-          <p className="mb-4 line-clamp-2 text-[13px] leading-relaxed text-zinc-500">
-            {c.description ?? "No description available."}
-          </p>
-          <div className="mt-auto flex items-center gap-4 text-[12px] text-zinc-400">
-            <span className="flex items-center gap-1">
-              <BookOutlined /> {c.totalLessons} lessons
-            </span>
-            <span className="flex items-center gap-1 capitalize">
-              <ClockCircleOutlined /> {c.level ?? "All levels"}
-            </span>
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}
+import CourseCard, { CourseCardSkeleton } from "@/components/CourseCard";
 
 function CoursesSection() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -657,7 +565,7 @@ function CoursesSection() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {loading
             ? Array.from({ length: 6 }).map((_, i) => <CourseCardSkeleton key={i} />)
-            : courses.map((c) => <CourseCard key={c.id} c={c} />)}
+            : courses.map((c) => <CourseCard key={c.id} course={c} />)}
         </div>
 
         {/* CTA */}
