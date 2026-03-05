@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Rate, Spin, Pagination } from "antd";
-import { ClockCircleOutlined, StarOutlined, PhoneFilled } from "@ant-design/icons";
+import { ClockCircleOutlined, StarOutlined, StarFilled, PhoneOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useAuth } from "@/contexts/AuthContext";
@@ -127,6 +127,18 @@ function RateModal({
   );
 }
 
+// ─── Inline Stars ──────────────────────────────────────────────────────────────
+
+function Stars({ count }: { count: number }) {
+  return (
+    <span className="inline-flex gap-px">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <StarFilled key={n} style={{ fontSize: 11, color: n <= count ? "#facc15" : "#e4e4e7" }} />
+      ))}
+    </span>
+  );
+}
+
 // ─── Session Card ──────────────────────────────────────────────────────────────
 
 function SessionCard({
@@ -147,6 +159,7 @@ function SessionCard({
   const theirRating = ratings.find((r) => r.ratedId === myId);
   const canRate = !!session.endedAt && !myRating;
   const color = avatarColor(partnerName);
+  const isLive = !session.endedAt;
 
   const handleSubmitRating = async (stars: number, feedback: string) => {
     await sessionService.rate(session.id, stars, feedback || undefined);
@@ -163,116 +176,136 @@ function SessionCard({
 
   return (
     <>
-      <div className="group overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-        {/* Top: partner info */}
-        <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-4">
-          <div className="flex items-center gap-3.5">
-            {/* Avatar */}
+      <div className="rounded-xl border border-zinc-100 bg-white p-4 transition-shadow hover:shadow-sm sm:p-5">
+        <div className="flex items-center gap-3 lg:gap-4">
+          {/* Avatar */}
+          <div className="relative shrink-0">
             <div
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-lg font-bold text-white shadow-sm ${color}`}
+              className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-white ${color}`}
             >
               {getInitials(partnerName)}
             </div>
-            <div>
-              <p className="font-semibold text-zinc-900">{partnerName}</p>
-              <p className="text-xs text-zinc-400">{partner?.email}</p>
-            </div>
+            {isLive && (
+              <span className="absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-400" />
+            )}
           </div>
 
-          {/* Meta */}
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <span className="text-xs font-medium text-zinc-500">
-              {dayjs(session.startedAt).format("DD MMM YYYY")}
-            </span>
-            <span className="flex items-center gap-1 text-xs text-zinc-400">
-              <ClockCircleOutlined style={{ fontSize: 11 }} />
+          {/* Name + date */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="truncate text-sm font-semibold text-zinc-900">{partnerName}</span>
+              {session.level && (
+                <span className="shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-500 capitalize">
+                  {session.level}
+                </span>
+              )}
+              {session.topic && (
+                <span className="hidden shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 lg:inline">
+                  {session.topic}
+                </span>
+              )}
+              {isLive && (
+                <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  Live
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-xs text-zinc-400">
+              {dayjs(session.startedAt).format("DD MMM, h:mm A")}
+              <span className="mx-1 text-zinc-200">·</span>
+              <ClockCircleOutlined style={{ fontSize: 10 }} />{" "}
               {formatDuration(session.durationSeconds)}
-            </span>
+              {session.endedAt && (
+                <>
+                  <span className="mx-1 text-zinc-200">·</span>
+                  {dayjs(session.endedAt).fromNow()}
+                </>
+              )}
+            </p>
           </div>
-        </div>
 
-        {/* Pills row */}
-        <div className="flex flex-wrap items-center gap-2 px-5 pb-4">
-          {session.level ? (
-            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600 capitalize">
-              {session.level}
-            </span>
-          ) : null}
-          {session.topic ? (
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500">
-              {session.topic}
-            </span>
-          ) : null}
-          {!session.endedAt && (
-            <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-              Live
-            </span>
-          )}
-          {session.endedAt && (
-            <span className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-400">
-              <PhoneFilled style={{ fontSize: 10 }} />
-              Ended {dayjs(session.endedAt).fromNow()}
-            </span>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div className="mx-5 border-t border-zinc-100" />
-
-        {/* Ratings section */}
-        <div className="flex items-center justify-between gap-4 px-5 py-4">
-          <div className="flex gap-6">
-            {/* You rated */}
-            <div className="min-w-0">
-              <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-                You rated
-              </p>
+          {/* Desktop: inline ratings */}
+          <div className="hidden shrink-0 items-center gap-5 lg:flex">
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <span className="font-medium text-zinc-500">You:</span>
               {myRating ? (
-                <div>
-                  <Rate disabled value={myRating.stars} style={{ fontSize: 13 }} />
+                <>
+                  <Stars count={myRating.stars} />
                   {myRating.feedback && (
-                    <p className="mt-1 max-w-[160px] truncate text-xs text-zinc-400 italic">
+                    <span className="max-w-[120px] truncate italic">
                       &ldquo;{myRating.feedback}&rdquo;
-                    </p>
+                    </span>
                   )}
-                </div>
+                </>
               ) : (
-                <span className="text-xs text-zinc-300">—</span>
+                <span>—</span>
               )}
             </div>
-
-            {/* They rated */}
-            <div className="min-w-0">
-              <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-                They rated
-              </p>
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <span className="font-medium text-zinc-500">Them:</span>
               {theirRating ? (
-                <div>
-                  <Rate disabled value={theirRating.stars} style={{ fontSize: 13 }} />
+                <>
+                  <Stars count={theirRating.stars} />
                   {theirRating.feedback && (
-                    <p className="mt-1 max-w-[160px] truncate text-xs text-zinc-400 italic">
+                    <span className="max-w-[120px] truncate italic">
                       &ldquo;{theirRating.feedback}&rdquo;
-                    </p>
+                    </span>
                   )}
-                </div>
+                </>
               ) : (
-                <span className="text-xs text-zinc-300">—</span>
+                <span>—</span>
               )}
             </div>
           </div>
 
-          {/* Rate CTA */}
+          {/* Action */}
           {canRate && (
             <button
               onClick={() => setShowRateModal(true)}
-              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow shadow-indigo-500/25 transition hover:opacity-90 active:scale-95"
+              className="shrink-0 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
             >
-              <StarOutlined />
+              <StarOutlined className="mr-1" />
               Rate
             </button>
           )}
         </div>
+
+        {/* Mobile: ratings below (only if any rating exists) */}
+        {(myRating || theirRating) && (
+          <div className="mt-3 flex gap-4 border-t border-zinc-50 pt-3 lg:hidden">
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <span className="font-medium text-zinc-500">You:</span>
+              {myRating ? (
+                <>
+                  <Stars count={myRating.stars} />
+                  {myRating.feedback && (
+                    <span className="max-w-[100px] truncate italic">
+                      &ldquo;{myRating.feedback}&rdquo;
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span>—</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <span className="font-medium text-zinc-500">Them:</span>
+              {theirRating ? (
+                <>
+                  <Stars count={theirRating.stars} />
+                  {theirRating.feedback && (
+                    <span className="max-w-[100px] truncate italic">
+                      &ldquo;{theirRating.feedback}&rdquo;
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span>—</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {showRateModal && (
@@ -324,66 +357,124 @@ export default function SessionsPage() {
   // Quick stats
   const ended = sessions.filter((s) => !!s.endedAt);
   const rated = sessions.filter((s) => (s.ratings ?? []).some((r) => r.raterId === user!.id));
+  const totalMinutes = sessions.reduce(
+    (sum, s) => sum + Math.floor((s.durationSeconds ?? 0) / 60),
+    0,
+  );
+  const avgDuration =
+    ended.length > 0
+      ? Math.round(ended.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0) / ended.length)
+      : 0;
 
   return (
-    <div className="min-h-screen bg-zinc-50/60 py-10">
-      <div className="mx-auto max-w-2xl px-4 sm:px-6">
+    <div className="min-h-screen bg-zinc-50/60 py-8 sm:py-12">
+      <div className="mx-auto max-w-xl px-4 sm:px-6 lg:max-w-3xl">
         {/* Header */}
-        <div className="mb-8 flex items-end justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-900">My Sessions</h1>
-            <p className="mt-1 text-sm text-zinc-500">Your practice history with ratings</p>
+            <h1 className="text-xl font-bold text-zinc-900 sm:text-2xl">Sessions</h1>
+            <p className="mt-0.5 text-xs text-zinc-400">
+              {total} conversation{total !== 1 ? "s" : ""}
+            </p>
           </div>
           <Link
             href="/partners"
-            className="hidden rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-4 py-2 text-sm font-semibold text-white no-underline shadow-lg shadow-indigo-500/25 transition hover:opacity-90 sm:flex"
+            className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white no-underline transition hover:bg-indigo-700"
           >
-            + New Session
+            <PhoneOutlined style={{ fontSize: 13 }} />
+            <span className="hidden sm:inline">New Session</span>
+            <span className="sm:hidden">New</span>
           </Link>
         </div>
 
-        {/* Stats strip */}
+        {/* Stat cards */}
         {!loading && sessions.length > 0 && (
-          <div className="mb-6 grid grid-cols-3 gap-3">
+          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              { label: "Total", value: total, emoji: "🎙️" },
-              { label: "Completed", value: ended.length, emoji: "✅" },
-              { label: "Rated", value: rated.length, emoji: "⭐" },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="flex flex-col items-center rounded-2xl border border-zinc-100 bg-white py-4 shadow-sm"
-              >
-                <span className="mb-1 text-xl">{s.emoji}</span>
-                <span className="text-xl font-bold text-zinc-900">{s.value}</span>
-                <span className="text-[11px] text-zinc-400">{s.label}</span>
+              {
+                label: "Total Sessions",
+                value: total,
+                icon: (
+                  <svg
+                    className="h-5 w-5 text-indigo-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
+                    />
+                  </svg>
+                ),
+                color: "text-indigo-600",
+              },
+              {
+                label: "Avg. Duration",
+                value: formatDuration(avgDuration),
+                icon: <ClockCircleOutlined style={{ fontSize: 18 }} className="text-emerald-400" />,
+                color: "text-emerald-600",
+              },
+              {
+                label: "Total Minutes",
+                value: totalMinutes,
+                icon: (
+                  <svg
+                    className="h-5 w-5 text-violet-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+                    />
+                  </svg>
+                ),
+                color: "text-violet-600",
+              },
+              {
+                label: "Sessions Rated",
+                value: rated.length,
+                icon: <StarOutlined style={{ fontSize: 18 }} className="text-amber-400" />,
+                color: "text-amber-600",
+              },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-xl border border-zinc-100 bg-white p-4">
+                <div className="flex items-start justify-between">
+                  <p className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                    {stat.label}
+                  </p>
+                  <div className="rounded-lg bg-zinc-50 p-1.5">{stat.icon}</div>
+                </div>
+                <p className={`mt-1 text-2xl font-bold ${stat.color}`}>{stat.value}</p>
               </div>
             ))}
           </div>
         )}
-
-        {/* Content */}
         {loading ? (
           <div className="flex justify-center py-24">
             <Spin size="large" />
           </div>
         ) : sessions.length === 0 ? (
-          <div className="flex flex-col items-center rounded-3xl border border-zinc-100 bg-white py-20 text-center shadow-sm">
-            <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-indigo-50 to-violet-50 text-4xl">
-              🎙️
-            </div>
-            <p className="text-base font-semibold text-zinc-800">No sessions yet</p>
-            <p className="mt-1 text-sm text-zinc-400">Find a partner and start practicing</p>
+          <div className="flex flex-col items-center rounded-2xl border border-zinc-100 bg-white py-16 text-center">
+            <div className="mb-3 text-4xl">🎙️</div>
+            <p className="text-sm font-semibold text-zinc-700">No sessions yet</p>
+            <p className="mt-1 text-xs text-zinc-400">Start your first conversation</p>
             <Link
               href="/partners"
-              className="mt-5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-2.5 text-sm font-semibold text-white no-underline shadow-lg shadow-indigo-500/25 transition hover:opacity-90"
+              className="mt-4 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white no-underline transition hover:bg-indigo-700"
             >
               Find a Partner
             </Link>
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2.5">
               {sessions.map((s) => (
                 <SessionCard key={s.id} session={s} myId={user!.id} onRated={handleRated} />
               ))}
