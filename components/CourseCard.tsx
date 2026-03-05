@@ -95,16 +95,18 @@ export default function CourseCard({ course }: { course: Course }) {
                 {course.level ?? "General"}
               </span>
             </div>
-            <span
-              className={`rounded-full px-2.5 py-1 text-[11px] font-bold text-white shadow-sm backdrop-blur-md ${
-                priceLabel === "Free" ? "bg-white/20" : "bg-black/30"
-              }`}
-            >
-              {course.isPremium && priceLabel !== "Free" && (
-                <LockOutlined className="mr-1 text-[10px]" />
-              )}
-              {priceLabel}
-            </span>
+            {!enrolled && (
+              <span
+                className={`rounded-full px-2.5 py-1 text-[11px] font-bold text-white shadow-sm backdrop-blur-md ${
+                  priceLabel === "Free" ? "bg-white/20" : "bg-black/30"
+                }`}
+              >
+                {course.isPremium && priceLabel !== "Free" && (
+                  <LockOutlined className="mr-1 text-[10px]" />
+                )}
+                {priceLabel}
+              </span>
+            )}
           </div>
 
           {/* ── Hover play icon ─────────────── */}

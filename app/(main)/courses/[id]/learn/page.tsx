@@ -131,7 +131,7 @@ function PdfLesson({ pdfUrl }: { pdfUrl: string | null }) {
   );
 }
 
-// ─── Quiz Lesson ──────────────────────────────────────────────────────────────
+// ── Quiz Lesson ──────────────────────────────────────────────────────────────
 function QuizLesson({
   courseId,
   lessonId,
@@ -146,6 +146,8 @@ function QuizLesson({
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
+  const [showingBest, setShowingBest] = useState(false);
+  const [retaking, setRetaking] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
 
   useEffect(() => {
@@ -153,6 +155,10 @@ function QuizLesson({
       try {
         const q = await courseService.getQuiz(courseId, lessonId);
         setQuiz(q);
+        // If there's a best attempt, show it by default
+        if (q.bestAttempt) {
+          setShowingBest(true);
+        }
       } catch {
         messageApi.error("Failed to load quiz");
       } finally {
@@ -193,6 +199,13 @@ function QuizLesson({
     }
   };
 
+  const handleRetake = () => {
+    setAnswers({});
+    setResult(null);
+    setShowingBest(false);
+    setRetaking(true);
+  };
+
   const handleReset = () => {
     setAnswers({});
     setResult(null);
@@ -215,6 +228,141 @@ function QuizLesson({
   }
 
   const allAnswered = quiz.questions.every((q) => (answers[q.id]?.length ?? 0) > 0);
+  const bestAttempt = quiz.bestAttempt;
+
+  // ── Show best attempt results ──
+  if (showingBest && bestAttempt && !retaking) {
+    const bestAnswerMap: Record<string, string[]> = {};
+    bestAttempt.answers.forEach((a) => {
+      bestAnswerMap[a.questionId] = a.selectedOptionIds;
+    });
+
+    return (
+      <div>
+        {contextHolder}
+        {/* Quiz header */}
+        <div className="mb-6">
+          <h3 className="text-lg font-bold text-zinc-900">{quiz.title}</h3>
+          <p className="text-sm text-zinc-400">
+            Passing score: {quiz.passingScore}% · {quiz.questions.length} questions
+          </p>
+        </div>
+
+        {/* Score result card */}
+        <div
+          className={`mb-8 flex flex-col items-center gap-5 rounded-2xl p-6 sm:flex-row ${
+            bestAttempt.passed
+              ? "border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50"
+              : "border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50"
+          }`}
+        >
+          <Progress
+            type="circle"
+            percent={bestAttempt.score}
+            size={80}
+            strokeColor={
+              bestAttempt.passed
+                ? { "0%": "#10b981", "100%": "#059669" }
+                : { "0%": "#f59e0b", "100%": "#d97706" }
+            }
+            trailColor={bestAttempt.passed ? "#d1fae5" : "#fef3c7"}
+            strokeWidth={8}
+            format={(pct) => (
+              <span
+                className={`text-lg font-bold ${
+                  bestAttempt.passed ? "text-emerald-600" : "text-amber-600"
+                }`}
+              >
+                {pct}%
+              </span>
+            )}
+          />
+          <div className="flex-1 text-center sm:text-left">
+            <div className="mb-1 flex items-center justify-center gap-2 sm:justify-start">
+              <span className="text-2xl">{bestAttempt.passed ? "🎉" : "💪"}</span>
+              <p
+                className={`text-lg font-bold ${
+                  bestAttempt.passed ? "text-emerald-700" : "text-amber-700"
+                }`}
+              >
+                {bestAttempt.passed ? "You passed!" : "Keep practicing!"}
+              </p>
+            </div>
+            <p className={`text-sm ${bestAttempt.passed ? "text-emerald-600" : "text-amber-600"}`}>
+              Score: {bestAttempt.score}% ·{" "}
+              {bestAttempt.passed
+                ? "Lesson marked as complete"
+                : `Need ${quiz.passingScore}% to pass`}
+            </p>
+            <p className="mt-1 text-xs text-zinc-400">
+              Attempted on{" "}
+              {new Date(bestAttempt.attemptedAt).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          </div>
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={handleRetake}
+            className="rounded-xl"
+            size="large"
+          >
+            Retake Quiz
+          </Button>
+        </div>
+
+        {/* Review answers */}
+        <h4 className="mb-4 text-sm font-semibold text-zinc-600">Your Answers</h4>
+        <div className="space-y-4">
+          {quiz.questions
+            .sort((a, b) => a.order - b.order)
+            .map((q, idx) => {
+              const selectedIds = bestAnswerMap[q.id] ?? [];
+
+              return (
+                <div
+                  key={q.id}
+                  className="rounded-2xl border border-zinc-100 bg-white p-5 shadow-sm"
+                >
+                  <p className="mb-4 font-semibold text-zinc-900">
+                    <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-600">
+                      {idx + 1}
+                    </span>
+                    {q.question}
+                  </p>
+                  <div className="space-y-2">
+                    {q.options.map((opt) => {
+                      const isSelected = selectedIds.includes(opt.id);
+                      return (
+                        <div
+                          key={opt.id}
+                          className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm ${
+                            isSelected
+                              ? "border-indigo-300 bg-indigo-50 font-medium text-indigo-700"
+                              : "border-zinc-100 bg-zinc-50 text-zinc-500"
+                          }`}
+                        >
+                          {isSelected ? (
+                            <CheckCircleFilled className="text-indigo-500" />
+                          ) : (
+                            <span className="h-4 w-4 rounded-full border-2 border-zinc-200" />
+                          )}
+                          {opt.text}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -229,7 +377,7 @@ function QuizLesson({
         </div>
       </div>
 
-      {/* Result banner */}
+      {/* Result banner (after submitting) */}
       {result && (
         <div
           className={`mb-6 flex items-center gap-4 rounded-2xl p-5 ${
@@ -238,10 +386,30 @@ function QuizLesson({
               : "border border-rose-200 bg-rose-50"
           }`}
         >
-          <span className="text-3xl">{result.passed ? "🎉" : "😔"}</span>
+          <Progress
+            type="circle"
+            percent={result.score}
+            size={64}
+            strokeColor={
+              result.passed
+                ? { "0%": "#10b981", "100%": "#059669" }
+                : { "0%": "#f43f5e", "100%": "#e11d48" }
+            }
+            trailColor={result.passed ? "#d1fae5" : "#ffe4e6"}
+            strokeWidth={8}
+            format={(pct) => (
+              <span
+                className={`text-sm font-bold ${
+                  result.passed ? "text-emerald-600" : "text-rose-600"
+                }`}
+              >
+                {pct}%
+              </span>
+            )}
+          />
           <div className="flex-1">
             <p className={`font-bold ${result.passed ? "text-emerald-700" : "text-rose-700"}`}>
-              {result.passed ? "You passed!" : "Not quite there yet"}
+              {result.passed ? "You passed! 🎉" : "Not quite there yet"}
             </p>
             <p className={`text-sm ${result.passed ? "text-emerald-600" : "text-rose-600"}`}>
               Score: {result.score}% ·{" "}
@@ -492,14 +660,16 @@ export default function LearnPage({ params }: { params: Promise<{ id: string }> 
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden items-center gap-2 sm:flex">
               <Progress
+                type="circle"
                 percent={progress}
-                showInfo={false}
-                size="small"
+                size={32}
                 strokeColor="#6366f1"
                 trailColor="#f1f5f9"
-                className="w-28"
+                strokeWidth={10}
+                format={(pct) => (
+                  <span className="text-[9px] font-bold text-indigo-600">{pct}</span>
+                )}
               />
-              <span className="text-xs font-semibold text-indigo-600">{progress}%</span>
             </div>
           </div>
         </div>

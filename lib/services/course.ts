@@ -53,6 +53,13 @@ export interface Quiz {
   title: string;
   passingScore: number;
   questions: QuizQuestion[];
+  bestAttempt?: {
+    id: string;
+    answers: { questionId: string; selectedOptionIds: string[] }[];
+    score: number;
+    passed: boolean;
+    attemptedAt: string;
+  } | null;
 }
 
 export interface QuizResult {
