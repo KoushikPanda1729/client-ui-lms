@@ -7,11 +7,7 @@ import {
   AudioOutlined,
   AudioMutedOutlined,
   PhoneOutlined,
-  StarFilled,
-  GlobalOutlined,
-  TeamOutlined,
   CheckCircleFilled,
-  ClockCircleOutlined,
   SoundOutlined,
   SendOutlined,
   MessageOutlined,
@@ -745,172 +741,94 @@ export default function PartnersPage() {
     setCallActive(false);
   };
 
-  const stats = [
-    { icon: <TeamOutlined />, value: "10K+", label: "Conversations" },
-    { icon: <GlobalOutlined />, value: "50+", label: "Countries" },
-    { icon: <StarFilled />, value: "4.9", label: "Avg Rating" },
-    { icon: <ClockCircleOutlined />, value: "<5s", label: "Match Time" },
-  ];
-
   return (
-    <div className="bg-white">
+    <div className="min-h-screen bg-white">
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden py-20 lg:py-28">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            {/* Left */}
-            <div className="max-w-xl">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-                128 native speakers online now
-              </div>
-              <h1 className="mb-5 text-4xl leading-tight font-extrabold tracking-tight text-zinc-900 sm:text-5xl lg:text-[52px]">
-                Practice speaking with{" "}
-                <span className="bg-linear-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                  native partners
+      <section className="relative overflow-hidden">
+        {/* Subtle background decoration */}
+        <div className="pointer-events-none absolute -top-40 right-0 h-[500px] w-[500px] rounded-full bg-indigo-100/40 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-20 h-[400px] w-[400px] rounded-full bg-violet-100/30 blur-3xl" />
+
+        <div className="relative mx-auto max-w-5xl px-6 pt-16 pb-20 lg:pt-24 lg:pb-28">
+          <div className="flex flex-col items-center text-center">
+            {/* Live indicator */}
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-sm font-medium text-emerald-700">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              Native speakers online now
+            </div>
+
+            <h1 className="mb-5 max-w-2xl text-4xl leading-tight font-extrabold tracking-tight text-zinc-900 sm:text-5xl lg:text-[3.25rem]">
+              Practice English with{" "}
+              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                real partners
+              </span>
+            </h1>
+
+            <p className="mb-8 max-w-lg text-lg leading-relaxed text-zinc-500">
+              One tap to connect with a native speaker. No scheduling, no pressure — just real
+              conversation.
+            </p>
+
+            {/* CTA Button */}
+            <button
+              onClick={openModal}
+              className="group mb-12 inline-flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-10 py-4 text-base font-bold text-white shadow-xl shadow-indigo-500/25 transition-all hover:-translate-y-0.5 hover:shadow-2xl active:translate-y-0"
+            >
+              <PhoneOutlined className="text-lg transition-transform group-hover:rotate-12" />
+              Connect Now — It&apos;s Free
+            </button>
+
+            {/* Quick benefits inline */}
+            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-zinc-500">
+              {["Audio calls, no video pressure", "Matched in seconds", "100% free"].map((item) => (
+                <span key={item} className="flex items-center gap-1.5">
+                  <CheckCircleFilled className="text-emerald-500" />
+                  {item}
                 </span>
-              </h1>
-              <p className="mb-8 max-w-md text-lg leading-relaxed text-zinc-500">
-                One tap to connect with a real English speaker. No scheduling, no awkward silences —
-                just genuine conversation that builds your fluency.
-              </p>
-              <ul className="mb-10 space-y-2.5 text-sm text-zinc-500">
-                {[
-                  "Instant matching with native speakers from 50+ countries",
-                  "Audio-only calls — comfortable, low-pressure practice",
-                  "Completely free — no credit card required",
-                ].map((item) => (
-                  <li key={item} className="flex items-center gap-2">
-                    <CheckCircleFilled className="text-emerald-500" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={openModal}
-                className="inline-flex items-center gap-2.5 rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 px-8 py-4 text-base font-bold text-white shadow-xl shadow-indigo-500/30 transition-all hover:-translate-y-0.5 hover:shadow-2xl active:translate-y-0"
-              >
-                <PhoneOutlined className="text-lg" />
-                Connect Now — It&apos;s Free
-              </button>
+              ))}
             </div>
-
-            {/* Right — iPhone mockup */}
-            <div className="flex justify-center lg:justify-end">
-              <div className="relative h-130 w-65">
-                <Image
-                  src="/iphone-call-mockup.png"
-                  alt="SpeakEasy audio call interface"
-                  fill
-                  className="object-contain drop-shadow-2xl"
-                  priority
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Stats bar ── */}
-      <section className="border-y border-zinc-100 bg-zinc-50/60 py-10">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            {stats.map((s) => (
-              <div key={s.label} className="text-center">
-                <div className="mb-1 text-2xl text-indigo-500">{s.icon}</div>
-                <p className="text-2xl font-extrabold text-zinc-900">{s.value}</p>
-                <p className="text-sm text-zinc-400">{s.label}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
 
       {/* ── How it works ── */}
-      <section className="py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <h2 className="mb-12 text-center text-3xl font-bold text-zinc-900">How it works</h2>
-          <div className="grid gap-8 sm:grid-cols-3">
+      <section className="border-t border-zinc-100 bg-zinc-50/50 py-16">
+        <div className="mx-auto max-w-4xl px-6">
+          <h2 className="mb-10 text-center text-2xl font-bold text-zinc-900">How it works</h2>
+          <div className="grid gap-6 sm:grid-cols-3">
             {[
               {
-                step: "1",
+                num: "1",
                 emoji: "👆",
                 title: "Press Connect",
                 desc: "Tap the button to enter the matching queue.",
               },
               {
-                step: "2",
+                num: "2",
                 emoji: "🔗",
                 title: "Get Matched",
                 desc: "Our system pairs you with a speaker in seconds.",
               },
               {
-                step: "3",
+                num: "3",
                 emoji: "🗣️",
                 title: "Start Talking",
                 desc: "Jump straight into a real English conversation.",
               },
             ].map((s) => (
               <div
-                key={s.step}
-                className="relative rounded-2xl border border-zinc-100 bg-white p-7 text-center shadow-sm transition-all hover:shadow-md"
+                key={s.num}
+                className="flex flex-col items-center rounded-2xl border border-zinc-100 bg-white p-6 text-center shadow-sm transition-all hover:shadow-md"
               >
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-3xl">
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-50 text-2xl">
                   {s.emoji}
                 </div>
-                <div className="mb-2 text-3xl font-black text-indigo-600">{s.step}</div>
-                <h3 className="mb-1.5 text-base font-bold text-zinc-900">{s.title}</h3>
-                <p className="text-sm leading-relaxed text-zinc-500">{s.desc}</p>
+                <span className="mb-1 text-xs font-bold text-indigo-500">Step {s.num}</span>
+                <h3 className="mb-1 text-sm font-bold text-zinc-900">{s.title}</h3>
+                <p className="text-xs leading-relaxed text-zinc-500">{s.desc}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section className="bg-indigo-50/40 py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <h2 className="mb-10 text-center text-3xl font-bold text-zinc-900">
-            Built for real practice
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { emoji: "🎧", title: "Audio Only", desc: "No video pressure. Just talk naturally." },
-              {
-                emoji: "🔒",
-                title: "Private & Safe",
-                desc: "Encrypted calls. Anonymous matching.",
-              },
-              { emoji: "⚡", title: "Instant Match", desc: "No scheduling. Connect in under 5s." },
-              { emoji: "🌍", title: "Global Network", desc: "Speakers from 50+ countries." },
-            ].map((f) => (
-              <div
-                key={f.title}
-                className="rounded-2xl bg-white p-6 text-center shadow-sm transition-all hover:shadow-md"
-              >
-                <div className="mb-3 text-4xl">{f.emoji}</div>
-                <h3 className="mb-1 text-sm font-bold text-zinc-900">{f.title}</h3>
-                <p className="text-xs leading-relaxed text-zinc-500">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Bottom CTA ── */}
-      <section className="py-20">
-        <div className="mx-auto max-w-2xl px-6 text-center">
-          <h2 className="mb-4 text-3xl font-bold text-zinc-900 sm:text-4xl">Ready to practice?</h2>
-          <p className="mb-8 text-base text-zinc-500">
-            Join thousands of learners having real English conversations every day.
-          </p>
-          <button
-            onClick={openModal}
-            className="inline-flex items-center gap-2.5 rounded-2xl bg-linear-to-r from-indigo-600 to-violet-600 px-10 py-4 text-base font-bold text-white shadow-xl shadow-indigo-500/30 transition-all hover:-translate-y-0.5"
-          >
-            <PhoneOutlined className="text-lg" />
-            Start a Free Call
-          </button>
         </div>
       </section>
 
