@@ -369,12 +369,19 @@ export default function Navbar() {
                   </p>
                   <p className="mt-0.5 text-xs leading-relaxed text-zinc-500">{n.body}</p>
                   <p className="mt-1.5 text-[11px] text-zinc-400">
-                    {new Date(n.createdAt).toLocaleDateString([], {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {(() => {
+                      const utcStr =
+                        n.createdAt.endsWith("Z") || n.createdAt.includes("+")
+                          ? n.createdAt
+                          : n.createdAt + "Z";
+                      const diff = Date.now() - new Date(utcStr).getTime();
+                      const mins = Math.floor(diff / 60_000);
+                      if (mins < 1) return "just now";
+                      if (mins < 60) return `${mins}m ago`;
+                      const hrs = Math.floor(mins / 60);
+                      if (hrs < 24) return `${hrs}h ago`;
+                      return `${Math.floor(hrs / 24)}d ago`;
+                    })()}
                   </p>
                 </div>
               </div>
