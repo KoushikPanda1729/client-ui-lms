@@ -21,6 +21,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/courses", label: "Courses" },
   { href: "/partners", label: "Find Partners" },
+  { href: "/ai-conversation", label: "AI Tutor" },
   { href: "/sessions", label: "My Sessions" },
 ];
 
