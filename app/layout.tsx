@@ -15,7 +15,43 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "SpeakEasy — Master English with Real Partners",
   description:
-    "Learn English through interactive courses and live speaking practice with native speakers.",
+    "Learn English through interactive courses and live speaking practice with native speakers. AI tutoring, real conversation partners, and structured lessons for all levels.",
+  keywords: [
+    "learn English online",
+    "English speaking practice",
+    "English courses",
+    "speak English fluently",
+    "AI English tutor",
+    "English conversation partner",
+    "online English classes",
+    "English for beginners",
+    "improve English speaking",
+    "SpeakEasy",
+  ],
+  metadataBase: new URL("https://learn.koushikpanda.online"),
+  openGraph: {
+    title: "SpeakEasy — Master English with Real Partners",
+    description:
+      "Learn English through interactive courses and live speaking practice with native speakers.",
+    url: "https://learn.koushikpanda.online",
+    siteName: "SpeakEasy",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "SpeakEasy — Master English with Real Partners",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SpeakEasy — Master English with Real Partners",
+    description:
+      "Learn English through interactive courses and live speaking practice with native speakers.",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({
