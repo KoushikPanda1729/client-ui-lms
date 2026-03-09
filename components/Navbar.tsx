@@ -336,7 +336,7 @@ export default function Navbar() {
         placement="right"
         onClose={() => setNotifOpen(false)}
         open={notifOpen}
-        width={360}
+        size="default"
         styles={{ body: { padding: 0 } }}
       >
         {notifLoading ? (

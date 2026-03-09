@@ -315,7 +315,7 @@ export default function DashboardPage() {
                 <Timeline
                   items={activity.map((item) => ({
                     color: item.color,
-                    children: (
+                    content: (
                       <div>
                         <p className="text-xs text-zinc-700">{item.text}</p>
                         <p className="text-[11px] text-zinc-400">{item.time}</p>
