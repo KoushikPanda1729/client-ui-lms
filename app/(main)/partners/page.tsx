@@ -717,12 +717,12 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                 className="flex flex-col items-center gap-1 transition active:scale-90"
               >
                 <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${muted ? "bg-white shadow-lg" : "bg-white/15 hover:bg-white/25"}`}
+                  className={`flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${muted ? "bg-white shadow-lg" : "hover:bg-white/10"}`}
                 >
                   {muted ? (
-                    <AudioMutedOutlined className="text-lg text-zinc-800" />
+                    <AudioMutedOutlined style={{ fontSize: 18, color: "#3f3f46" }} />
                   ) : (
-                    <AudioOutlined className="text-lg text-white" />
+                    <AudioOutlined style={{ fontSize: 18, color: "white" }} />
                   )}
                 </div>
                 <span className="text-[9px] font-medium text-white/50">
@@ -743,10 +743,10 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                   className="flex flex-col items-center gap-1 transition active:scale-90 disabled:opacity-50"
                 >
                   <div
-                    className={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${videoEnabled ? "bg-white shadow-lg" : "bg-white/15 hover:bg-white/25"}`}
+                    className={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${videoEnabled ? "bg-white shadow-lg" : "hover:bg-white/10"}`}
                   >
                     <VideoCameraOutlined
-                      className={`text-lg ${videoEnabled ? "text-zinc-800" : "text-white"}`}
+                      style={{ fontSize: 18, color: videoEnabled ? "#3f3f46" : "white" }}
                     />
                     {remoteVideoEnabled && !videoEnabled && (
                       <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 animate-pulse rounded-full border-2 border-black/50 bg-emerald-400" />
@@ -764,7 +764,7 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                 className="flex flex-col items-center gap-1 transition active:scale-90"
               >
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500 shadow-lg shadow-red-500/40 transition-transform hover:scale-105 sm:h-15 sm:w-15">
-                  <PhoneOutlined className="rotate-135 text-xl text-white" />
+                  <PhoneOutlined style={{ fontSize: 20, color: "white" }} className="rotate-135" />
                 </div>
                 <span className="text-[9px] font-medium text-white/40">End</span>
               </button>
@@ -776,10 +776,10 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                   className="flex flex-col items-center gap-1 transition active:scale-90"
                 >
                   <div
-                    className={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${chatOpen ? "bg-white shadow-lg" : "bg-white/15 hover:bg-white/25"}`}
+                    className={`relative flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${chatOpen ? "bg-white shadow-lg" : "hover:bg-white/10"}`}
                   >
                     <MessageOutlined
-                      className={`text-lg ${chatOpen ? "text-zinc-800" : "text-white"}`}
+                      style={{ fontSize: 18, color: chatOpen ? "#3f3f46" : "white" }}
                     />
                     {hasUnread && (
                       <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-black/50 bg-emerald-400" />
@@ -797,11 +797,9 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                 className="flex flex-col items-center gap-1 transition active:scale-90"
               >
                 <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${speakerOn ? "bg-white shadow-lg" : "bg-white/15 hover:bg-white/25"}`}
+                  className={`flex h-12 w-12 items-center justify-center rounded-full transition-all sm:h-13 sm:w-13 ${speakerOn ? "bg-white shadow-lg" : "hover:bg-white/10"}`}
                 >
-                  <SoundOutlined
-                    className={`text-lg ${speakerOn ? "text-zinc-800" : "text-white"}`}
-                  />
+                  <SoundOutlined style={{ fontSize: 18, color: speakerOn ? "#3f3f46" : "white" }} />
                 </div>
                 <span className="text-[9px] font-medium text-white/50">Speaker</span>
               </button>
