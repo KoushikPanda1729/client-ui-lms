@@ -45,6 +45,7 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
     speakerOn,
     videoEnabled,
     remoteVideoEnabled,
+    isPartnerMuted,
     localVideoStreamRef,
     remoteVideoStreamRef,
     lastRoomId,
@@ -335,11 +336,13 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                     </div>
                   )}
                 </div>
-                {phase === "connected" && !isReconnecting && (
+                {/* Online dot */}
+                {phase === "connected" && !isReconnecting && !isPartnerMuted && (
                   <span className="absolute right-2.5 bottom-2.5 h-5 w-5 rounded-full border-[3px] border-[#0a0a18] bg-emerald-400 shadow-lg shadow-emerald-500/50" />
                 )}
               </div>
-              {phase === "connected" && !isReconnecting && (
+              {/* Waveform — hidden when muted */}
+              {phase === "connected" && !isReconnecting && !isPartnerMuted && (
                 <div className="flex h-10 items-end justify-center gap-0.75">
                   {Array.from({ length: 26 }).map((_, i) => (
                     <span
@@ -352,6 +355,16 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                       }}
                     />
                   ))}
+                </div>
+              )}
+
+              {/* Muted pill — shown below avatar when partner is muted */}
+              {phase === "connected" && !isReconnecting && isPartnerMuted && (
+                <div className="flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-2 backdrop-blur-sm">
+                  <AudioMutedOutlined style={{ color: "white", fontSize: 14 }} />
+                  <span className="text-sm font-medium text-white/70">
+                    {partner.displayName} muted this call
+                  </span>
                 </div>
               )}
             </div>

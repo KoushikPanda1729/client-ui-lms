@@ -65,6 +65,7 @@ export function useAudioCall() {
   const [speakerOn, setSpeakerOn] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(false);
   const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
+  const [isPartnerMuted, setIsPartnerMuted] = useState(false);
   // Tracks the last completed call's roomId so the UI can prompt for a review
   const [lastRoomId, setLastRoomId] = useState<string | null>(null);
 
@@ -129,6 +130,7 @@ export function useAudioCall() {
     localMediaReadyRef.current = Promise.resolve();
     setDuration(0);
     setMuted(false);
+    setIsPartnerMuted(false);
     setIsPartnerTyping(false);
     if (partnerTypingTimerRef.current) {
       clearTimeout(partnerTypingTimerRef.current);
@@ -376,6 +378,7 @@ export function useAudioCall() {
         setErrorMsg("Partner ended the call");
         setPhase("ended");
         setMuted(false);
+        setIsPartnerMuted(false);
         stopTimer();
         stopLocalStream();
         closePeerConnection();
@@ -432,6 +435,11 @@ export function useAudioCall() {
           partnerTypingTimerRef.current = setTimeout(() => setIsPartnerTyping(false), 3000);
         }
       });
+
+      // Partner mute state
+      socket.on("mute_state", ({ muted: partnerMuted }: { muted: boolean }) => {
+        setIsPartnerMuted(partnerMuted);
+      });
     },
     [
       createPeerConnection,
@@ -469,6 +477,7 @@ export function useAudioCall() {
       socket.off("chat_message");
       socket.off("message_delivered");
       socket.off("typing");
+      socket.off("mute_state");
       setMessages([]);
       setIsPartnerTyping(false);
 
@@ -521,7 +530,14 @@ export function useAudioCall() {
     stream.getAudioTracks().forEach((t) => {
       t.enabled = !t.enabled;
     });
-    setMuted((m) => !m);
+    setMuted((m) => {
+      const next = !m;
+      // Notify partner of our new mute state
+      if (socketRef.current && roomIdRef.current) {
+        socketRef.current.emit("mute_state", { roomId: roomIdRef.current, muted: next });
+      }
+      return next;
+    });
   }, []);
 
   const toggleVideo = useCallback(async () => {
@@ -625,6 +641,7 @@ export function useAudioCall() {
     speakerOn,
     videoEnabled,
     remoteVideoEnabled,
+    isPartnerMuted,
     localVideoStreamRef,
     remoteVideoStreamRef,
     lastRoomId,
