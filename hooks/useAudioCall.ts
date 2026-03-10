@@ -128,6 +128,7 @@ export function useAudioCall() {
     pendingCandidates.current = [];
     localMediaReadyRef.current = Promise.resolve();
     setDuration(0);
+    setMuted(false);
     setIsPartnerTyping(false);
     if (partnerTypingTimerRef.current) {
       clearTimeout(partnerTypingTimerRef.current);
@@ -293,6 +294,10 @@ export function useAudioCall() {
             video: false,
           });
           localStreamRef.current = stream;
+          // Always start unmuted — ensure tracks are enabled regardless of previous call state
+          stream.getAudioTracks().forEach((t) => {
+            t.enabled = true;
+          });
           stream.getTracks().forEach((t) => pc.addTrack(t, stream));
           resolveLocalMedia(); // tracks are now on the PC
         } catch {
@@ -370,6 +375,7 @@ export function useAudioCall() {
         wasConnectedRef.current = false;
         setErrorMsg("Partner ended the call");
         setPhase("ended");
+        setMuted(false);
         stopTimer();
         stopLocalStream();
         closePeerConnection();
@@ -443,6 +449,7 @@ export function useAudioCall() {
     (level?: string) => {
       setErrorMsg(null);
       setLastRoomId(null);
+      setMuted(false);
       wasConnectedRef.current = false;
       setPhase("searching");
 
