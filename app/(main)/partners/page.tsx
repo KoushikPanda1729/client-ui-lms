@@ -293,6 +293,7 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                 autoPlay
                 playsInline
                 className="absolute inset-0 h-full w-full bg-black object-cover"
+                style={{ transform: "scaleX(-1)" }}
               />
               {(swapped ? !videoEnabled : !remoteVideoEnabled) && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
@@ -455,6 +456,7 @@ function AudioCallModal({ open, onClose }: { open: boolean; onClose: () => void 
                 playsInline
                 muted
                 className="h-full w-full object-cover"
+                style={{ transform: "scaleX(-1)" }}
               />
               {/* Tap-to-swap hint */}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 bg-black/0 opacity-0 transition-all duration-200 hover:bg-black/35 hover:opacity-100">
