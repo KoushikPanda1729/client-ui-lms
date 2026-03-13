@@ -90,7 +90,7 @@ function VideoLesson({ videoUrl }: { videoUrl: string | null }) {
       ? videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "www.youtube.com/embed/")
       : videoUrl.replace("vimeo.com/", "player.vimeo.com/video/");
     return (
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-black">
+      <div className="overflow-hidden bg-black sm:rounded-2xl sm:border sm:border-zinc-200">
         <iframe
           src={embedUrl}
           className="aspect-video w-full"
@@ -103,7 +103,7 @@ function VideoLesson({ videoUrl }: { videoUrl: string | null }) {
 
   // HLS stream or direct video — both use <video>
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-black">
+    <div className="overflow-hidden bg-black sm:rounded-2xl sm:border sm:border-zinc-200">
       <video
         ref={videoRef}
         {...(!isHls && { src: videoUrl })}
@@ -649,32 +649,33 @@ export default function LearnPage({ params }: { params: Promise<{ id: string }> 
       {contextHolder}
 
       {/* ── Top bar ── */}
-      <div className="sticky top-16 z-30 border-b border-zinc-200 bg-white shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5">
-          <Link
-            href={`/courses/${courseId}`}
-            className="flex items-center gap-1.5 text-sm font-medium text-zinc-500 no-underline hover:text-zinc-900"
-          >
-            <ArrowLeftOutlined style={{ fontSize: 13 }} />
-            <span className="max-w-[160px] truncate sm:max-w-none">{course.title}</span>
+      <div className="sticky top-16 z-30 bg-white shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
+          <Link href={`/courses/${courseId}`} className="flex items-center gap-2 no-underline">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition hover:bg-zinc-200">
+              <ArrowLeftOutlined style={{ fontSize: 13 }} />
+            </div>
+            <span className="max-w-[150px] truncate text-sm font-semibold text-zinc-800 sm:max-w-none">
+              {course.title}
+            </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
             <Progress
               type="circle"
               percent={progress}
-              size={28}
-              strokeColor="#6366f1"
+              size={32}
+              strokeColor={{ "0%": "#6366f1", "100%": "#8b5cf6" }}
               trailColor="#f1f5f9"
-              strokeWidth={10}
-              format={(pct) => <span className="text-[8px] font-bold text-indigo-600">{pct}</span>}
+              strokeWidth={8}
+              format={(pct) => <span className="text-[9px] font-bold text-indigo-600">{pct}</span>}
             />
-            <span className="text-xs text-zinc-400">{progress}%</span>
+            <span className="hidden text-xs font-semibold text-zinc-400 sm:block">{progress}%</span>
           </div>
         </div>
 
         {/* Mobile lesson strip */}
         <div
-          className="flex gap-2 overflow-x-auto px-4 pb-2.5 lg:hidden"
+          className="flex gap-2 overflow-x-auto px-4 pb-3 lg:hidden"
           style={{ scrollbarWidth: "none" }}
         >
           {sortedLessons.map((lesson, index) => {
@@ -683,23 +684,37 @@ export default function LearnPage({ params }: { params: Promise<{ id: string }> 
               <button
                 key={lesson.id}
                 onClick={() => handleSelectLesson(lesson)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
                   isActive
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/30"
                     : lesson.completed
-                      ? "bg-emerald-50 text-emerald-600"
+                      ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200"
                       : "bg-zinc-100 text-zinc-500"
                 }`}
               >
                 {lesson.completed && !isActive ? (
-                  <CheckOutlined style={{ fontSize: 10 }} />
+                  <CheckOutlined style={{ fontSize: 9 }} />
                 ) : (
-                  <span>{index + 1}</span>
+                  <span
+                    className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${
+                      isActive ? "bg-white/20" : "bg-zinc-200 text-zinc-600"
+                    }`}
+                  >
+                    {index + 1}
+                  </span>
                 )}
-                <span className="max-w-[90px] truncate">{lesson.title}</span>
+                <span className="max-w-[80px] truncate">{lesson.title}</span>
               </button>
             );
           })}
+        </div>
+
+        {/* Thin progress line */}
+        <div className="h-0.5 bg-zinc-100">
+          <div
+            className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-700"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
 
@@ -773,43 +788,58 @@ export default function LearnPage({ params }: { params: Promise<{ id: string }> 
           ) : activeLesson ? (
             <>
               {/* Lesson header */}
-              <div className="mb-4">
-                <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                  <Tag
-                    className="rounded-full border-0 text-xs capitalize"
-                    color={
-                      activeLesson.type === "video"
-                        ? "blue"
-                        : activeLesson.type === "pdf"
-                          ? "red"
-                          : activeLesson.type === "quiz"
-                            ? "gold"
-                            : "green"
-                    }
-                  >
-                    {LESSON_ICON[activeLesson.type]}
-                    <span className="ml-1 capitalize">{activeLesson.type}</span>
-                  </Tag>
-                  {activeLesson.completed && (
-                    <Tag color="green" className="rounded-full border-0 text-xs">
-                      <CheckCircleFilled className="mr-1" />
-                      Completed
-                    </Tag>
-                  )}
-                  {activeLesson.durationMinutes && (
-                    <span className="text-xs text-zinc-400">
-                      <ClockCircleOutlined className="mr-1" />
-                      {activeLesson.durationMinutes} min
+              <div className="mb-5 overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm">
+                {/* Colored accent bar based on type */}
+                <div
+                  className={`h-1 w-full ${
+                    activeLesson.type === "video"
+                      ? "bg-gradient-to-r from-indigo-500 to-blue-500"
+                      : activeLesson.type === "pdf"
+                        ? "bg-gradient-to-r from-rose-500 to-pink-500"
+                        : activeLesson.type === "quiz"
+                          ? "bg-gradient-to-r from-amber-400 to-orange-500"
+                          : "bg-gradient-to-r from-emerald-500 to-teal-500"
+                  }`}
+                />
+                <div className="px-4 py-3.5">
+                  <div className="mb-2.5 flex flex-wrap items-center gap-2">
+                    {/* Type pill */}
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
+                        activeLesson.type === "video"
+                          ? "bg-indigo-50 text-indigo-600"
+                          : activeLesson.type === "pdf"
+                            ? "bg-rose-50 text-rose-600"
+                            : activeLesson.type === "quiz"
+                              ? "bg-amber-50 text-amber-600"
+                              : "bg-emerald-50 text-emerald-600"
+                      }`}
+                    >
+                      {LESSON_ICON[activeLesson.type]}
+                      {activeLesson.type}
                     </span>
-                  )}
+
+                    {activeLesson.completed && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white">
+                        <CheckCircleFilled style={{ fontSize: 10 }} /> Completed
+                      </span>
+                    )}
+
+                    {activeLesson.durationMinutes && (
+                      <span className="ml-auto flex items-center gap-1 text-xs text-zinc-400">
+                        <ClockCircleOutlined />
+                        {activeLesson.durationMinutes} min
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="text-lg leading-snug font-bold text-zinc-900 sm:text-2xl">
+                    {activeLesson.title}
+                  </h1>
                 </div>
-                <h1 className="text-lg font-bold text-zinc-900 sm:text-2xl">
-                  {activeLesson.title}
-                </h1>
               </div>
 
               {/* Lesson content */}
-              <div className="mb-5">
+              <div className={`mb-5 ${activeLesson.type === "video" ? "-mx-4 sm:mx-0" : ""}`}>
                 {activeLesson.type === "video" && <VideoLesson videoUrl={activeLesson.videoUrl} />}
                 {activeLesson.type === "pdf" && <PdfLesson pdfUrl={activeLesson.pdfUrl} />}
                 {activeLesson.type === "text" && <TextLesson content={activeLesson.content} />}
@@ -825,15 +855,26 @@ export default function LearnPage({ params }: { params: Promise<{ id: string }> 
                 )}
               </div>
 
+              {/* Course complete banner — compact */}
+              {progress === 100 && (
+                <div className="mb-3 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5">
+                  <span className="text-base">🎉</span>
+                  <p className="flex-1 text-xs font-semibold text-emerald-700">
+                    Course Complete! You&apos;ve finished all {course.totalLessons} lessons.
+                  </p>
+                  <TrophyOutlined className="shrink-0 text-sm text-amber-500" />
+                </div>
+              )}
+
               {/* Bottom navigation — sticky on mobile */}
-              <div className="fixed right-0 bottom-16 left-0 z-20 border-t border-zinc-100 bg-white px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] sm:static sm:bottom-auto sm:rounded-2xl sm:border sm:px-4 sm:shadow-sm">
+              <div className="fixed right-0 bottom-0 left-0 z-20 border-t border-zinc-100 bg-white/95 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-sm sm:static sm:bottom-auto sm:rounded-2xl sm:border sm:shadow-sm">
                 <div className="flex items-center gap-2">
                   <button
                     disabled={!hasPrev}
                     onClick={() => navigateLesson("prev")}
-                    className="flex h-11 items-center gap-1.5 rounded-xl border border-zinc-200 px-4 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 active:scale-95 disabled:opacity-30"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-200 text-zinc-600 transition hover:bg-zinc-50 active:scale-95 disabled:opacity-30 sm:w-auto sm:gap-1.5 sm:px-4 sm:text-sm sm:font-medium"
                   >
-                    <ArrowLeftOutlined style={{ fontSize: 12 }} />
+                    <ArrowLeftOutlined style={{ fontSize: 13 }} />
                     <span className="hidden sm:inline">Previous</span>
                   </button>
 
@@ -843,14 +884,14 @@ export default function LearnPage({ params }: { params: Promise<{ id: string }> 
                         activeLesson.completed || activeLesson.type === "quiz" || completing
                       }
                       onClick={handleMarkComplete}
-                      className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-semibold text-white transition active:scale-95 disabled:opacity-60"
+                      className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-bold text-white transition active:scale-95 disabled:cursor-default disabled:opacity-80"
                       style={
                         activeLesson.completed
-                          ? { background: "#10b981" }
+                          ? { background: "linear-gradient(135deg, #10b981 0%, #059669 100%)" }
                           : { background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)" }
                       }
                     >
-                      <CheckOutlined style={{ fontSize: 12 }} />
+                      <CheckOutlined style={{ fontSize: 13 }} />
                       {completing
                         ? "Saving…"
                         : activeLesson.completed
@@ -862,27 +903,13 @@ export default function LearnPage({ params }: { params: Promise<{ id: string }> 
                   <button
                     disabled={!hasNext}
                     onClick={() => navigateLesson("next")}
-                    className="flex h-11 items-center gap-1.5 rounded-xl border border-zinc-200 px-4 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 active:scale-95 disabled:opacity-30"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-200 text-zinc-600 transition hover:bg-zinc-50 active:scale-95 disabled:opacity-30 sm:w-auto sm:gap-1.5 sm:px-4 sm:text-sm sm:font-medium"
                   >
                     <span className="hidden sm:inline">Next</span>
-                    <ArrowRightOutlined style={{ fontSize: 12 }} />
+                    <ArrowRightOutlined style={{ fontSize: 13 }} />
                   </button>
                 </div>
               </div>
-
-              {/* Course complete banner */}
-              {progress === 100 && (
-                <div className="mt-5 flex items-center gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                  <span className="text-2xl">🎉</span>
-                  <div>
-                    <p className="text-sm font-bold text-emerald-700">Course Complete!</p>
-                    <p className="text-xs text-emerald-600">
-                      You&apos;ve finished all {course.totalLessons} lessons in this course.
-                    </p>
-                  </div>
-                  <TrophyOutlined className="ml-auto text-xl text-amber-500" />
-                </div>
-              )}
             </>
           ) : (
             <div className="flex h-64 items-center justify-center text-sm text-zinc-400">

@@ -66,6 +66,9 @@ const tabs = [
 export default function BottomNav() {
   const pathname = usePathname();
 
+  // Hide on course learn page
+  if (pathname.includes("/learn")) return null;
+
   return (
     <nav className="fixed right-0 bottom-0 left-0 z-50 md:hidden">
       {/* frosted glass bar */}
