@@ -316,11 +316,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         )}
 
         {/* Hero content */}
-        <div className="relative z-10 mx-auto max-w-6xl px-6 pt-8 pb-12">
+        <div className="relative z-10 mx-auto max-w-6xl px-4 pt-5 pb-8 sm:px-6 sm:pt-8 sm:pb-12">
           {/* Back link */}
           <Link
             href="/courses"
-            className="mb-8 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white/80 no-underline backdrop-blur-sm transition-all hover:bg-white/20 hover:text-white"
+            className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white/80 no-underline backdrop-blur-sm transition-all hover:bg-white/20 hover:text-white sm:mb-8 sm:text-sm"
           >
             <ArrowLeftOutlined className="text-xs" /> Back to Courses
           </Link>
@@ -328,61 +328,59 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               {/* Badges */}
-              <div className="mb-4 flex flex-wrap items-center gap-2">
+              <div className="mb-3 flex flex-wrap items-center gap-1.5 sm:mb-4 sm:gap-2">
                 {course.level && (
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold text-white capitalize backdrop-blur-sm">
+                  <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-bold text-white capitalize backdrop-blur-sm">
                     {course.level}
                   </span>
                 )}
                 <span
-                  className={`rounded-full px-3 py-1 text-xs font-bold text-white backdrop-blur-sm ${
-                    isPremium ? "bg-amber-500/80" : "bg-emerald-500/80"
-                  }`}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold text-white backdrop-blur-sm ${isPremium ? "bg-amber-500/80" : "bg-emerald-500/80"}`}
                 >
                   {isPremium ? (
                     <>
-                      <LockOutlined className="mr-1 text-[10px]" /> Premium
+                      <LockOutlined className="mr-1 text-[10px]" />
+                      Premium
                     </>
                   ) : (
                     "Free"
                   )}
                 </span>
                 {enrolled && (
-                  <span className="flex items-center gap-1 rounded-full bg-emerald-500/80 px-3 py-1 text-xs font-bold text-white backdrop-blur-sm">
+                  <span className="flex items-center gap-1 rounded-full bg-emerald-500/80 px-2.5 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
                     <CheckCircleFilled className="text-[10px]" /> Enrolled
                   </span>
                 )}
               </div>
 
               {/* Title */}
-              <h1 className="mb-3 text-3xl leading-tight font-bold text-white sm:text-4xl lg:text-[2.75rem]">
+              <h1 className="mb-2.5 text-2xl leading-tight font-bold text-white sm:text-3xl lg:text-[2.75rem]">
                 {course.title}
               </h1>
 
-              {/* Description */}
-              <p className="mb-5 max-w-xl text-base leading-relaxed text-white/70">
+              {/* Description — 3 lines on mobile */}
+              <p className="mb-4 line-clamp-3 max-w-xl text-sm leading-relaxed text-white/70 sm:line-clamp-none sm:text-base">
                 {course.description ?? "No description provided."}
               </p>
 
               {/* Quick stats */}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-white/60">
-                <span className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-white/60 sm:gap-4 sm:text-sm">
+                <span className="flex items-center gap-1">
                   <BookOutlined /> {course.totalLessons} lessons
                 </span>
                 {course.level && (
-                  <span className="flex items-center gap-1.5 capitalize">
+                  <span className="flex items-center gap-1 capitalize">
                     <TrophyOutlined /> {course.level}
                   </span>
                 )}
                 {Object.entries(lessonTypeCounts).map(([type, count]) => (
-                  <span key={type} className="flex items-center gap-1.5 capitalize">
+                  <span key={type} className="flex items-center gap-1 capitalize">
                     {LESSON_ICON[type]} {count} {type}
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* Hero emoji for no-thumbnail */}
             {!course.thumbnailUrl && (
               <span className="hidden text-8xl drop-shadow-2xl lg:block">
                 {LEVEL_EMOJI[course.level ?? ""] ?? "📖"}
@@ -392,18 +390,74 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
+      {/* ═══════ MOBILE STICKY CTA ═══════ */}
+      <div className="fixed right-0 bottom-16 left-0 z-40 border-t border-zinc-100 bg-white/95 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-sm lg:hidden">
+        <div className="flex items-center gap-3">
+          {!enrolled && (
+            <div className="min-w-0">
+              <p className="text-lg leading-none font-extrabold text-indigo-600">
+                {isPremium
+                  ? appliedCoupon
+                    ? formatPrice(appliedCoupon.finalPrice)
+                    : priceLabel
+                  : "Free"}
+              </p>
+              {appliedCoupon && (
+                <p className="text-[10px] font-semibold text-emerald-600">
+                  {appliedCoupon.discountPercent}% off applied
+                </p>
+              )}
+            </div>
+          )}
+          {enrolled ? (
+            <button
+              onClick={handleStartLearning}
+              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-bold text-white shadow-lg shadow-indigo-500/30 active:scale-95"
+              style={{ background: "linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)" }}
+            >
+              <PlayCircleOutlined />
+              {progress > 0 ? "Continue Learning" : "Start Learning"}
+            </button>
+          ) : isPremium ? (
+            <button
+              disabled={enrolling}
+              onClick={handleBuyCourse}
+              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-bold text-white shadow-lg shadow-indigo-500/30 active:scale-95 disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)" }}
+            >
+              <LockOutlined /> Buy —{" "}
+              {appliedCoupon ? formatPrice(appliedCoupon.finalPrice) : priceLabel}
+            </button>
+          ) : (
+            <button
+              disabled={enrolling}
+              onClick={handleEnroll}
+              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-bold text-white shadow-lg shadow-indigo-500/30 active:scale-95 disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)" }}
+            >
+              <PlayCircleOutlined /> Enroll for Free
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* ═══════ MAIN CONTENT ═══════ */}
-      <div className="mx-auto max-w-6xl px-6 py-10">
+      <div className="mx-auto max-w-6xl px-4 py-6 pb-36 sm:px-6 sm:py-10 sm:pb-10 lg:pb-10">
         <div className="grid gap-10 lg:grid-cols-3">
           {/* ── Left column ── */}
           <div className="lg:col-span-2">
             {/* Progress (enrolled) */}
             {enrolled && (
-              <div className="mb-8 overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-50">
-                <div className="flex flex-col items-center gap-1 px-6 pt-8 pb-6 sm:flex-row sm:gap-8">
+              <div className="mb-6 overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-50">
+                <div className="flex flex-row items-center gap-4 px-5 py-4 sm:flex-col sm:items-center sm:gap-8 sm:px-6 sm:pt-8 sm:pb-6 md:flex-row md:items-center">
                   {/* Custom semi-circle gauge */}
                   <div className="relative flex shrink-0 flex-col items-center">
-                    <svg width="120" height="70" viewBox="0 0 120 70">
+                    <svg
+                      width="90"
+                      height="52"
+                      viewBox="0 0 120 70"
+                      className="sm:h-[70px] sm:w-[120px]"
+                    >
                       <defs>
                         <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                           <stop offset="0%" stopColor="#6366f1" />
@@ -434,7 +488,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                     </span>
                   </div>
 
-                  <div className="text-center sm:text-left">
+                  <div className="text-left sm:text-left">
                     <h3 className="mb-1 text-base font-bold text-indigo-800">
                       {progress === 100 ? "🎉 Course Complete!" : "Your Progress"}
                     </h3>
@@ -578,8 +632,8 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
             </div>
           </div>
 
-          {/* ── Right: Sidebar ── */}
-          <div>
+          {/* ── Right: Sidebar (desktop only) ── */}
+          <div className="hidden lg:block">
             <div className="sticky top-20 overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-lg shadow-black/5">
               {/* Price header */}
               <div className="border-b border-zinc-100 bg-gradient-to-r from-indigo-50/80 to-violet-50/80 p-6">
