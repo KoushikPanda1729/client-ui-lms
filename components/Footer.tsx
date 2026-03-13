@@ -34,7 +34,48 @@ const footerSections = [
 export default function Footer() {
   return (
     <footer className="border-t border-zinc-200 bg-zinc-50">
-      <div className="mx-auto max-w-6xl px-6 py-16">
+      {/* ── Mobile layout ── */}
+      <div className="px-5 pt-8 pb-6 md:hidden">
+        {/* Brand row */}
+        <div className="mb-6 flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-bold text-white">
+            S
+          </div>
+          <span className="text-lg font-bold tracking-tight text-zinc-900">
+            Speak<span className="gradient-text">Easy</span>
+          </span>
+        </div>
+
+        {/* 3-column links */}
+        <div className="grid grid-cols-3 gap-x-3 gap-y-5">
+          {footerSections.map((section) => (
+            <div key={section.title}>
+              <p className="mb-2 text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                {section.title}
+              </p>
+              <ul className="space-y-1.5">
+                {section.links.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-xs text-zinc-500 no-underline transition-colors hover:text-zinc-800"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-6 text-center text-[11px] text-zinc-400">
+          &copy; {new Date().getFullYear()} SpeakEasy. All rights reserved.
+        </p>
+      </div>
+
+      {/* ── Desktop layout ── */}
+      <div className="mx-auto hidden max-w-6xl px-6 py-16 md:block">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div>

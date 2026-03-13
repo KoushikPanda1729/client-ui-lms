@@ -301,36 +301,68 @@ function Hero() {
    SOCIAL PROOF BANNER — Light blue bg with stats
    ═══════════════════════════════════════════════ */
 function SocialProofBanner() {
+  const avatars = ["👩‍🏫", "👨‍💼", "👩‍🎓", "🧑‍💻", "👨‍🔬"];
+
   return (
-    <section className="bg-indigo-50/60 py-14">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="flex flex-col items-center gap-10 md:flex-row md:gap-16">
-          {/* Illustration side */}
-          <div className="flex flex-shrink-0 items-center gap-3">
-            <div className="flex -space-x-3">
-              {["👩‍🏫", "👨‍💼", "👩‍🎓", "🧑‍💻", "👨‍🔬"].map((e, i) => (
-                <div
-                  key={i}
-                  className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-indigo-50 bg-white text-2xl shadow-sm"
-                >
-                  {e}
-                </div>
-              ))}
-            </div>
+    <>
+      {/* ── Mobile: compact banner strip ── */}
+      <div className="mx-4 my-4 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 sm:hidden">
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          {/* Avatar stack */}
+          <div className="flex shrink-0 -space-x-2.5">
+            {avatars.map((e, i) => (
+              <div
+                key={i}
+                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-indigo-500 bg-white text-sm shadow-sm"
+              >
+                {e}
+              </div>
+            ))}
           </div>
-          {/* Text side */}
-          <div>
-            <h2 className="mb-2 text-2xl font-bold text-zinc-900 sm:text-3xl">
-              Trusted by 10,000+ learners across 50+ countries
-            </h2>
-            <p className="max-w-lg text-base text-zinc-500">
-              SpeakEasy is the top-rated platform for English learners — the only app combining live
-              native speaker practice with structured courses and AI-powered progress tracking.
+          {/* Text */}
+          <div className="min-w-0 flex-1">
+            <p className="text-xs leading-tight font-bold text-white">
+              10,000+ learners · 50+ countries
             </p>
+            <p className="mt-0.5 text-[10px] text-indigo-200">Top-rated English platform ⭐ 4.9</p>
           </div>
+          {/* Badge */}
+          <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold text-white">
+            Free
+          </span>
         </div>
       </div>
-    </section>
+
+      {/* ── Desktop: original full section (unchanged) ── */}
+      <section className="hidden bg-indigo-50/60 py-14 sm:block">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="flex items-center gap-16 md:flex-row">
+            <div className="flex shrink-0 items-center gap-3">
+              <div className="flex -space-x-3">
+                {avatars.map((e, i) => (
+                  <div
+                    key={i}
+                    className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-indigo-50 bg-white text-2xl shadow-sm"
+                  >
+                    {e}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h2 className="mb-2 text-3xl font-bold text-zinc-900">
+                Trusted by 10,000+ learners across 50+ countries
+              </h2>
+              <p className="max-w-lg text-base text-zinc-500">
+                SpeakEasy is the top-rated platform for English learners — the only app combining
+                live native speaker practice with structured courses and AI-powered progress
+                tracking.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -374,23 +406,26 @@ function FeatureSections() {
   ];
 
   return (
-    <section className="py-20">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="space-y-24">
+    <section className="py-10 sm:py-20">
+      <div className="mx-auto max-w-6xl px-5 sm:px-6">
+        <div className="space-y-10 sm:space-y-24">
           {sections.map((s, idx) => (
             <div
               key={s.title}
-              className={`flex flex-col items-center gap-12 ${idx % 2 === 1 ? "lg:flex-row-reverse" : "lg:flex-row"}`}
+              className={`flex flex-col items-center gap-6 sm:gap-12 ${idx % 2 === 1 ? "lg:flex-row-reverse" : "lg:flex-row"}`}
             >
               {/* Illustration / card side */}
               <div className="w-full lg:w-1/2">
-                <div className={`rounded-3xl bg-gradient-to-br p-8 sm:p-10 ${s.bg}`}>
-                  <div className="mb-6 text-center text-7xl">{s.emoji}</div>
-                  <div className="grid grid-cols-3 gap-3">
+                <div className={`rounded-2xl bg-gradient-to-br p-5 sm:rounded-3xl sm:p-10 ${s.bg}`}>
+                  <div className="mb-4 text-center text-5xl sm:mb-6 sm:text-7xl">{s.emoji}</div>
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     {s.cards.map((c) => (
-                      <div key={c.text} className="rounded-xl bg-white p-3.5 text-center shadow-sm">
-                        <div className="mb-1.5 text-2xl">{c.icon}</div>
-                        <p className="text-[11px] leading-tight font-medium text-zinc-600">
+                      <div
+                        key={c.text}
+                        className="rounded-xl bg-white p-2.5 text-center shadow-sm sm:p-3.5"
+                      >
+                        <div className="mb-1 text-xl sm:mb-1.5 sm:text-2xl">{c.icon}</div>
+                        <p className="text-[10px] leading-tight font-medium text-zinc-600 sm:text-[11px]">
                           {c.text}
                         </p>
                       </div>
@@ -401,15 +436,19 @@ function FeatureSections() {
               {/* Text side */}
               <div className="w-full lg:w-1/2">
                 <span
-                  className={`mb-3 inline-block text-xs font-bold tracking-wider uppercase ${s.tagColor}`}
+                  className={`mb-2 inline-block text-xs font-bold tracking-wider uppercase ${s.tagColor}`}
                 >
                   {s.tag}
                 </span>
-                <h2 className="mb-3 text-2xl leading-tight font-bold text-zinc-900 sm:text-3xl">
+                <h2 className="mb-2 text-xl leading-tight font-bold text-zinc-900 sm:mb-3 sm:text-3xl">
                   {s.title}
                 </h2>
-                <p className="mb-2 text-base font-medium text-zinc-700">{s.subtitle}</p>
-                <p className="mb-6 text-base leading-relaxed text-zinc-500">{s.desc}</p>
+                <p className="mb-1 text-sm font-medium text-zinc-700 sm:mb-2 sm:text-base">
+                  {s.subtitle}
+                </p>
+                <p className="mb-4 hidden text-base leading-relaxed text-zinc-500 sm:mb-6 sm:block">
+                  {s.desc}
+                </p>
                 <Link
                   href={s.link}
                   className="text-sm font-semibold text-indigo-600 no-underline hover:text-indigo-500"
@@ -430,19 +469,19 @@ function FeatureSections() {
    ═══════════════════════════════════════════════ */
 function CollectionCTA() {
   return (
-    <section className="py-20">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="overflow-hidden rounded-3xl bg-indigo-50">
-          <div className="flex flex-col items-center gap-10 px-8 py-14 md:flex-row md:px-14 md:py-16">
+    <section className="py-10 sm:py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="overflow-hidden rounded-2xl bg-indigo-50 sm:rounded-3xl">
+          <div className="flex flex-col items-center gap-8 px-6 py-10 md:flex-row md:px-14 md:py-16">
             {/* Left text */}
             <div className="flex-1">
               <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white">
                 <ThunderboltOutlined /> Complete Learning
               </div>
-              <h2 className="mb-3 text-2xl font-bold text-zinc-900 sm:text-3xl">
+              <h2 className="mb-3 text-xl font-bold text-zinc-900 sm:text-3xl">
                 All your English learning, one platform
               </h2>
-              <p className="mb-6 max-w-md text-base leading-relaxed text-zinc-500">
+              <p className="mb-5 max-w-md text-sm leading-relaxed text-zinc-500 sm:text-base">
                 Get courses, speaking practice, progress tracking, and AI-powered feedback — all in
                 one place. Everything you need to speak fluently.
               </p>
@@ -450,14 +489,14 @@ function CollectionCTA() {
                 <Button
                   type="primary"
                   size="large"
-                  className="h-12 rounded-xl px-8 text-[15px] font-bold shadow-lg shadow-indigo-500/25"
+                  className="h-11 rounded-xl px-6 text-sm font-bold shadow-lg shadow-indigo-500/25 sm:h-12 sm:px-8 sm:text-[15px]"
                 >
                   Get Started Free <ArrowRightOutlined />
                 </Button>
               </Link>
             </div>
-            {/* Right — floating icons */}
-            <div className="relative flex h-52 w-52 flex-shrink-0 items-center justify-center md:h-64 md:w-64">
+            {/* Right — floating icons (hidden on mobile) */}
+            <div className="relative hidden h-52 w-52 flex-shrink-0 items-center justify-center md:flex md:h-64 md:w-64">
               <div className="absolute flex h-16 w-16 -translate-x-10 -translate-y-12 rotate-[-12deg] items-center justify-center rounded-2xl bg-indigo-500 text-2xl text-white shadow-xl">
                 📚
               </div>
@@ -531,13 +570,13 @@ function Testimonials() {
   ];
 
   return (
-    <section className="py-20">
+    <section className="py-10 sm:py-20">
       <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-8 text-center sm:mb-12">
-          <h2 className="mb-3 text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl">
+        <div className="mb-6 text-center sm:mb-12">
+          <h2 className="mb-2 text-xl font-bold tracking-tight text-zinc-900 sm:mb-3 sm:text-4xl">
             Real results from real learners
           </h2>
-          <p className="mx-auto max-w-lg text-base text-zinc-500">
+          <p className="mx-auto max-w-lg text-sm text-zinc-500 sm:text-base">
             Thousands of students have transformed their English with SpeakEasy
           </p>
         </div>
@@ -632,35 +671,35 @@ function Testimonials() {
    ═══════════════════════════════════════════════ */
 function FinalCTA() {
   return (
-    <section className="py-20">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 px-8 py-16 text-center shadow-2xl shadow-indigo-500/20 sm:px-16 lg:px-24 lg:py-20">
+    <section className="py-10 sm:py-20">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 px-6 py-10 text-center shadow-2xl shadow-indigo-500/20 sm:rounded-3xl sm:px-16 sm:py-16 lg:px-24 lg:py-20">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
             <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
           </div>
           <div className="relative">
-            <h2 className="mb-4 text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
-              Ready to speak English
-              <br />
-              fluently?
+            <h2 className="mb-3 text-2xl font-bold text-white sm:mb-4 sm:text-4xl lg:text-5xl">
+              Ready to speak English fluently?
             </h2>
-            <p className="mx-auto mb-10 max-w-xl text-base leading-relaxed text-indigo-100">
+            <p className="mx-auto mb-7 max-w-xl text-sm leading-relaxed text-indigo-100 sm:mb-10 sm:text-base">
               Join thousands of learners who transformed their English with SpeakEasy.
             </p>
-            <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Link href="/register">
+            <div className="flex flex-col items-center gap-2.5 sm:flex-row sm:justify-center sm:gap-4">
+              <Link href="/register" className="w-full sm:w-auto">
                 <Button
                   size="large"
-                  className="h-13 rounded-2xl border-0 bg-white px-8 text-[15px] font-bold text-indigo-600 shadow-xl hover:bg-indigo-50"
+                  block
+                  className="h-11 rounded-xl border-0 bg-white text-sm font-bold text-indigo-600 shadow-xl hover:bg-indigo-50 sm:h-13 sm:w-auto sm:rounded-2xl sm:px-8 sm:text-[15px]"
                 >
                   Get Started Free <ArrowRightOutlined />
                 </Button>
               </Link>
-              <Link href="/partners">
+              <Link href="/partners" className="w-full sm:w-auto">
                 <Button
                   size="large"
-                  className="h-13 rounded-2xl border-2 border-white/30 bg-transparent px-8 text-[15px] font-bold text-white shadow-lg hover:bg-white/10"
+                  block
+                  className="h-11 rounded-xl border-2 border-white/30 bg-transparent text-sm font-bold text-white shadow-lg hover:bg-white/10 sm:h-13 sm:w-auto sm:rounded-2xl sm:px-8 sm:text-[15px]"
                 >
                   <PhoneOutlined /> Try Live Call
                 </Button>
