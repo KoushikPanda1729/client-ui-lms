@@ -94,6 +94,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
+  const [navigatingLessonId, setNavigatingLessonId] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [couponsModalOpen, setCouponsModalOpen] = useState(false);
   const [availableCoupons, setAvailableCoupons] = useState<
@@ -230,7 +231,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
 
   const handleLessonClick = async (lessonId: string) => {
     if (!course) return;
+    if (navigatingLessonId) return; // prevent double-tap
     if (enrolled) {
+      setNavigatingLessonId(lessonId);
       router.push(`/courses/${course.id}/learn?lesson=${lessonId}`);
       return;
     }
@@ -238,6 +241,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       messageApi.info("Purchase this course to access lessons");
       return;
     }
+    setNavigatingLessonId(lessonId);
     setEnrolling(true);
     try {
       await courseService.enroll(course.id);
@@ -249,6 +253,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           "Failed to enroll";
         messageApi.error(msg);
         setEnrolling(false);
+        setNavigatingLessonId(null);
         return;
       }
     }
@@ -646,6 +651,7 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                   {sortedLessons.map((lesson: Lesson, index: number) => {
                     const isLocked = isPremium && !enrolled;
                     const isCompleted = lesson.completed;
+                    const isNavigating = navigatingLessonId === lesson.id;
 
                     return (
                       <div
@@ -654,22 +660,37 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                         className={`group flex cursor-pointer items-center gap-3.5 border-b border-l-[3px] border-zinc-50 px-4 py-3.5 transition-all duration-150 last:border-b-0 sm:gap-4 ${
                           LESSON_BORDER[lesson.type] ?? "border-l-zinc-200"
                         } ${
-                          isCompleted
-                            ? "bg-emerald-50/40 hover:bg-emerald-50/70"
-                            : isLocked
-                              ? "cursor-not-allowed opacity-50"
-                              : "hover:bg-indigo-50/50"
+                          isNavigating
+                            ? "bg-indigo-50/70"
+                            : isCompleted
+                              ? "bg-emerald-50/40 hover:bg-emerald-50/70"
+                              : isLocked
+                                ? "cursor-not-allowed opacity-50"
+                                : "hover:bg-indigo-50/50"
                         }`}
                       >
-                        {/* Step number / check */}
+                        {/* Step number / check / spinner */}
                         <span
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${
-                            isCompleted
-                              ? "bg-emerald-500 text-white"
-                              : "bg-zinc-100 text-zinc-500 group-hover:bg-indigo-100 group-hover:text-indigo-600"
+                            isNavigating
+                              ? "bg-indigo-100 text-indigo-500"
+                              : isCompleted
+                                ? "bg-emerald-500 text-white"
+                                : "bg-zinc-100 text-zinc-500 group-hover:bg-indigo-100 group-hover:text-indigo-600"
                           }`}
                         >
-                          {isCompleted ? <CheckOutlined /> : index + 1}
+                          {isNavigating ? (
+                            <Spin
+                              size="small"
+                              indicator={
+                                <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                              }
+                            />
+                          ) : isCompleted ? (
+                            <CheckOutlined />
+                          ) : (
+                            index + 1
+                          )}
                         </span>
 
                         {/* Type icon */}
@@ -685,9 +706,11 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                         <div className="min-w-0 flex-1">
                           <p
                             className={`truncate text-sm font-medium ${
-                              isCompleted
-                                ? "text-emerald-700"
-                                : "text-zinc-800 group-hover:text-indigo-700"
+                              isNavigating
+                                ? "text-indigo-700"
+                                : isCompleted
+                                  ? "text-emerald-700"
+                                  : "text-zinc-800 group-hover:text-indigo-700"
                             }`}
                           >
                             {lesson.title}
@@ -701,7 +724,9 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
                         </div>
 
                         {/* Right side */}
-                        {isLocked ? (
+                        {isNavigating ? (
+                          <span className="shrink-0 text-xs text-indigo-400">Opening…</span>
+                        ) : isLocked ? (
                           <LockOutlined className="shrink-0 text-xs text-zinc-400" />
                         ) : isCompleted ? (
                           <CheckCircleFilled className="shrink-0 text-sm text-emerald-500" />
