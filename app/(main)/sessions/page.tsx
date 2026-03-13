@@ -79,7 +79,7 @@ function RateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-6 backdrop-blur-sm sm:items-center sm:pb-0">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-[calc(4rem+1.5rem)] backdrop-blur-sm sm:items-center sm:pb-0">
       <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl">
         {/* Header strip */}
         <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-5 text-center">
@@ -170,8 +170,11 @@ function ReportModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-6 backdrop-blur-sm sm:items-center sm:pb-0">
-      <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-[calc(4rem+0.75rem)] backdrop-blur-sm sm:items-center sm:pb-0">
+      <div
+        className="flex w-full max-w-sm flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+        style={{ maxHeight: "calc(100dvh - 4rem - 2rem)" }}
+      >
         {done ? (
           <div className="flex flex-col items-center px-6 py-10 text-center">
             <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-2xl">
@@ -190,34 +193,39 @@ function ReportModal({
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div className="bg-gradient-to-r from-rose-500 to-pink-600 px-6 py-5 text-center">
-              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-xl">
+            {/* Header — fixed, not scrollable */}
+            <div className="shrink-0 bg-gradient-to-r from-rose-500 to-pink-600 px-6 py-4 text-center">
+              <div className="mx-auto mb-1.5 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-lg">
                 🚩
               </div>
               <p className="text-sm font-semibold text-white">Report {partnerName}</p>
               <p className="text-xs text-white/70">Help us keep the community safe</p>
             </div>
 
-            <div className="p-6">
-              {/* Reason */}
-              <p className="mb-2 text-xs font-semibold tracking-wide text-zinc-500 uppercase">
-                Reason
+            {/* Scrollable body */}
+            <div
+              className="flex-1 overflow-y-auto px-5 py-4"
+              style={{ overscrollBehavior: "contain" }}
+            >
+              <p className="mb-2.5 text-[10px] font-semibold tracking-widest text-zinc-400 uppercase">
+                Choose a reason
               </p>
-              <div className="mb-4 flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 {REPORT_REASONS.map((r) => (
                   <button
                     key={r.value}
                     onClick={() => setReason(r.value)}
-                    className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
+                    className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition active:scale-[0.98] ${
                       reason === r.value
-                        ? "border-rose-400 bg-rose-50 text-rose-600"
-                        : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                        ? "border-rose-300 bg-rose-50 text-rose-600"
+                        : "border-zinc-100 bg-zinc-50 text-zinc-600 hover:border-zinc-200 hover:bg-zinc-100"
                     }`}
                   >
                     <span
-                      className={`h-3.5 w-3.5 flex-shrink-0 rounded-full border-2 transition ${
-                        reason === r.value ? "border-rose-500 bg-rose-500" : "border-zinc-300"
+                      className={`h-4 w-4 shrink-0 rounded-full border-2 transition ${
+                        reason === r.value
+                          ? "border-rose-500 bg-rose-500"
+                          : "border-zinc-300 bg-white"
                       }`}
                     />
                     {r.label}
@@ -225,31 +233,31 @@ function ReportModal({
                 ))}
               </div>
 
-              {/* Description */}
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Additional details (optional)..."
                 maxLength={500}
                 rows={2}
-                className="mb-4 w-full resize-none rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700 transition outline-none placeholder:text-zinc-400 focus:border-rose-300 focus:bg-white focus:ring-2 focus:ring-rose-100"
+                className="mt-4 w-full resize-none rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700 outline-none placeholder:text-zinc-400 focus:border-rose-300 focus:bg-white focus:ring-2 focus:ring-rose-100"
               />
+            </div>
 
-              <div className="flex gap-2.5">
-                <button
-                  onClick={onClose}
-                  className="flex-1 rounded-2xl border border-zinc-200 py-3 text-sm font-semibold text-zinc-400 transition hover:bg-zinc-50 active:scale-95"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={!reason || loading}
-                  className="flex-1 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:opacity-90 active:scale-95 disabled:opacity-40"
-                >
-                  {loading ? "Submitting…" : "Submit Report"}
-                </button>
-              </div>
+            {/* Action buttons — fixed at bottom, never scroll away */}
+            <div className="flex shrink-0 gap-2.5 border-t border-zinc-100 px-5 py-4">
+              <button
+                onClick={onClose}
+                className="flex-1 rounded-2xl border border-zinc-200 py-3 text-sm font-semibold text-zinc-400 transition hover:bg-zinc-50 active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={!reason || loading}
+                className="flex-1 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:opacity-90 active:scale-95 disabled:opacity-40"
+              >
+                {loading ? "Submitting…" : "Submit Report"}
+              </button>
             </div>
           </>
         )}
@@ -366,12 +374,13 @@ function SessionCard({
 
   return (
     <>
-      <div className="rounded-xl border border-zinc-100 bg-white p-4 transition-shadow hover:shadow-sm sm:p-5">
-        <div className="flex items-center gap-3 lg:gap-4">
+      <div className="rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5">
+        {/* Top row: avatar + info */}
+        <div className="flex items-start gap-3">
           {/* Avatar */}
           <div className="relative shrink-0">
             <div
-              className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-white ${color}`}
+              className={`flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-white ${color}`}
             >
               {getInitials(partnerName)}
             </div>
@@ -380,42 +389,54 @@ function SessionCard({
             )}
           </div>
 
-          {/* Name + date */}
+          {/* Name + meta */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="truncate text-sm font-semibold text-zinc-900">{partnerName}</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-sm font-semibold text-zinc-900">{partnerName}</span>
               {session.level && (
-                <span className="shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-500 capitalize">
+                <span className="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-500 capitalize">
                   {session.level}
                 </span>
               )}
-              {session.topic && (
-                <span className="hidden shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 lg:inline">
-                  {session.topic}
-                </span>
-              )}
               {isLive && (
-                <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">
+                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
                   Live
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-xs text-zinc-400">
-              {dayjs(session.startedAt).format("DD MMM, h:mm A")}
-              <span className="mx-1 text-zinc-200">·</span>
-              <ClockCircleOutlined style={{ fontSize: 10 }} />{" "}
-              {formatDuration(session.durationSeconds)}
+            {/* Date + duration on one clean line */}
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-400">
+              <span>{dayjs(session.startedAt).format("DD MMM, h:mm A")}</span>
+              <span className="text-zinc-200">·</span>
+              <span className="flex items-center gap-0.5">
+                <ClockCircleOutlined style={{ fontSize: 10 }} />
+                {formatDuration(session.durationSeconds)}
+              </span>
               {session.endedAt && (
                 <>
-                  <span className="mx-1 text-zinc-200">·</span>
-                  {dayjs(session.endedAt).fromNow()}
+                  <span className="text-zinc-200">·</span>
+                  <span>{dayjs(session.endedAt).fromNow()}</span>
                 </>
               )}
-            </p>
+            </div>
+
+            {/* Ratings (mobile inline) */}
+            {(myRating || theirRating) && (
+              <div className="mt-2 flex flex-wrap gap-3 lg:hidden">
+                <div className="flex items-center gap-1 text-xs text-zinc-400">
+                  <span className="font-medium text-zinc-500">You:</span>
+                  {myRating ? <Stars count={myRating.stars} /> : <span>—</span>}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-zinc-400">
+                  <span className="font-medium text-zinc-500">Them:</span>
+                  {theirRating ? <Stars count={theirRating.stars} /> : <span>—</span>}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Desktop: inline ratings */}
+          {/* Desktop ratings */}
           <div className="hidden shrink-0 items-center gap-5 lg:flex">
             <div className="flex items-center gap-1.5 text-xs text-zinc-400">
               <span className="font-medium text-zinc-500">You:</span>
@@ -448,67 +469,32 @@ function SessionCard({
               )}
             </div>
           </div>
+        </div>
 
-          {/* Actions */}
-          <div className="flex shrink-0 items-center gap-1.5">
+        {/* Actions row — full width on mobile, sits below info */}
+        {(canRate || canReport || localReport) && (
+          <div className="mt-3 flex items-center gap-2 border-t border-zinc-50 pt-3">
             {canRate && (
               <button
                 onClick={() => setShowRateModal(true)}
-                className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-50 py-2 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100 active:scale-95 sm:flex-none sm:px-4"
               >
-                <StarOutlined className="mr-1" />
-                Rate
+                <StarOutlined style={{ fontSize: 12 }} />
+                Rate Session
               </button>
             )}
             {canReport && (
               <button
                 onClick={() => setShowReportModal(true)}
-                className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-500 transition hover:bg-rose-100"
-                title="Report this user"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-rose-100 bg-rose-50 py-2 text-xs font-semibold text-rose-500 transition hover:bg-rose-100 active:scale-95 sm:flex-none sm:px-4"
               >
-                <svg className="mr-1 inline h-3 w-3" viewBox="0 0 16 16" fill="currentColor">
+                <svg className="h-3 w-3" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M3 2a1 1 0 0 0-1 1v10a1 1 0 0 0 2 0V9h7.3l-1.6-3L11.3 3H4V2H3zm1 1h6.7l-1.4 2.6 1.4 2.4H4V3z" />
                 </svg>
                 Report
               </button>
             )}
             {localReport && <ReportStatusBadge report={localReport} />}
-          </div>
-        </div>
-
-        {/* Mobile: ratings below (only if any rating exists) */}
-        {(myRating || theirRating) && (
-          <div className="mt-3 flex gap-4 border-t border-zinc-50 pt-3 lg:hidden">
-            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-              <span className="font-medium text-zinc-500">You:</span>
-              {myRating ? (
-                <>
-                  <Stars count={myRating.stars} />
-                  {myRating.feedback && (
-                    <span className="max-w-[100px] truncate italic">
-                      &ldquo;{myRating.feedback}&rdquo;
-                    </span>
-                  )}
-                </>
-              ) : (
-                <span>—</span>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-              <span className="font-medium text-zinc-500">Them:</span>
-              {theirRating ? (
-                <>
-                  <Stars count={theirRating.stars} />
-                  {theirRating.feedback && (
-                    <span className="max-w-[100px] truncate italic">
-                      &ldquo;{theirRating.feedback}&rdquo;
-                    </span>
-                  )}
-                </>
-              ) : (
-                <span>—</span>
-              )}
-            </div>
           </div>
         )}
       </div>
@@ -610,71 +596,123 @@ export default function SessionsPage() {
 
         {/* Stat cards */}
         {!loading && sessions.length > 0 && (
-          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {[
-              {
-                label: "Total Sessions",
-                value: total,
-                icon: (
-                  <svg
-                    className="h-5 w-5 text-indigo-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
+          <div className="mb-6">
+            {/* Mobile: 2×2 equal grid */}
+            <div className="grid grid-cols-2 gap-3 sm:hidden">
+              {[
+                {
+                  label: "Sessions",
+                  value: total,
+                  icon: "🎙️",
+                  bg: "bg-indigo-50",
+                  color: "text-indigo-600",
+                },
+                {
+                  label: "Avg. Duration",
+                  value: formatDuration(avgDuration),
+                  icon: "⏱️",
+                  bg: "bg-emerald-50",
+                  color: "text-emerald-600",
+                },
+                {
+                  label: "Minutes",
+                  value: totalMinutes,
+                  icon: "⚡",
+                  bg: "bg-violet-50",
+                  color: "text-violet-600",
+                },
+                {
+                  label: "Rated",
+                  value: rated.length,
+                  icon: "⭐",
+                  bg: "bg-amber-50",
+                  color: "text-amber-600",
+                },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-zinc-100 bg-white py-3 shadow-sm"
+                >
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-base ${stat.bg}`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
-                    />
-                  </svg>
-                ),
-                color: "text-indigo-600",
-              },
-              {
-                label: "Avg. Duration",
-                value: formatDuration(avgDuration),
-                icon: <ClockCircleOutlined style={{ fontSize: 18 }} className="text-emerald-400" />,
-                color: "text-emerald-600",
-              },
-              {
-                label: "Total Minutes",
-                value: totalMinutes,
-                icon: (
-                  <svg
-                    className="h-5 w-5 text-violet-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
-                    />
-                  </svg>
-                ),
-                color: "text-violet-600",
-              },
-              {
-                label: "Sessions Rated",
-                value: rated.length,
-                icon: <StarOutlined style={{ fontSize: 18 }} className="text-amber-400" />,
-                color: "text-amber-600",
-              },
-            ].map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-zinc-100 bg-white p-4">
-                <div className="flex items-start justify-between">
-                  <p className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
-                    {stat.label}
-                  </p>
-                  <div className="rounded-lg bg-zinc-50 p-1.5">{stat.icon}</div>
+                    {stat.icon}
+                  </div>
+                  <p className={`text-lg leading-none font-bold ${stat.color}`}>{stat.value}</p>
+                  <p className="text-[10px] font-medium text-zinc-400">{stat.label}</p>
                 </div>
-                <p className={`mt-1 text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            {/* Desktop: 4-column grid */}
+            <div className="hidden sm:grid sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
+              {[
+                {
+                  label: "Total Sessions",
+                  value: total,
+                  icon: (
+                    <svg
+                      className="h-5 w-5 text-indigo-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
+                      />
+                    </svg>
+                  ),
+                  color: "text-indigo-600",
+                },
+                {
+                  label: "Avg. Duration",
+                  value: formatDuration(avgDuration),
+                  icon: (
+                    <ClockCircleOutlined style={{ fontSize: 18 }} className="text-emerald-400" />
+                  ),
+                  color: "text-emerald-600",
+                },
+                {
+                  label: "Total Minutes",
+                  value: totalMinutes,
+                  icon: (
+                    <svg
+                      className="h-5 w-5 text-violet-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+                      />
+                    </svg>
+                  ),
+                  color: "text-violet-600",
+                },
+                {
+                  label: "Sessions Rated",
+                  value: rated.length,
+                  icon: <StarOutlined style={{ fontSize: 18 }} className="text-amber-400" />,
+                  color: "text-amber-600",
+                },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-xl border border-zinc-100 bg-white p-4">
+                  <div className="flex items-start justify-between">
+                    <p className="text-[10px] font-semibold tracking-wider text-zinc-400 uppercase">
+                      {stat.label}
+                    </p>
+                    <div className="rounded-lg bg-zinc-50 p-1.5">{stat.icon}</div>
+                  </div>
+                  <p className={`mt-1 text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
         )}
         {loading ? (

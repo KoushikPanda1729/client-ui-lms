@@ -134,12 +134,26 @@ export default function CoursesPage() {
                 </button>
               </div>
             ) : (
-              /* Enrolled courses grid */
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {enrolled.map((c) => (
-                  <CourseCard key={c.id} course={c} />
-                ))}
-              </div>
+              /* Enrolled courses — horizontal scroll on mobile, grid on desktop */
+              <>
+                <div className="-mx-4 sm:hidden">
+                  <div
+                    className="flex gap-4 overflow-x-auto px-4 pb-2"
+                    style={{ scrollbarWidth: "none" }}
+                  >
+                    {enrolled.map((c) => (
+                      <div key={c.id} className="w-64 shrink-0">
+                        <CourseCard course={c} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="hidden sm:grid sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+                  {enrolled.map((c) => (
+                    <CourseCard key={c.id} course={c} />
+                  ))}
+                </div>
+              </>
             )}
           </section>
         )}
@@ -186,19 +200,47 @@ export default function CoursesPage() {
             </p>
           </div>
 
-          {/* Grid */}
+          {/* Grid / scroll */}
           {loading ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <CourseCardSkeleton key={i} />
-              ))}
-            </div>
+            <>
+              <div className="-mx-4 sm:hidden">
+                <div
+                  className="flex gap-4 overflow-x-auto px-4 pb-2"
+                  style={{ scrollbarWidth: "none" }}
+                >
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="w-64 shrink-0">
+                      <CourseCardSkeleton />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="hidden sm:grid sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <CourseCardSkeleton key={i} />
+                ))}
+              </div>
+            </>
           ) : filteredAll.length > 0 ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredAll.map((c) => (
-                <CourseCard key={c.id} course={c} />
-              ))}
-            </div>
+            <>
+              <div className="-mx-4 sm:hidden">
+                <div
+                  className="flex gap-4 overflow-x-auto px-4 pb-2"
+                  style={{ scrollbarWidth: "none" }}
+                >
+                  {filteredAll.map((c) => (
+                    <div key={c.id} className="w-64 shrink-0">
+                      <CourseCard course={c} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="hidden sm:grid sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredAll.map((c) => (
+                  <CourseCard key={c.id} course={c} />
+                ))}
+              </div>
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-white py-16">
               <Empty

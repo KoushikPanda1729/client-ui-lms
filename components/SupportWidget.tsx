@@ -112,7 +112,7 @@ export default function SupportWidget() {
       {/* ── Chat Window ── */}
       {open && (
         <div
-          className="fixed right-5 bottom-24 z-50 flex w-80 flex-col overflow-hidden rounded-2xl shadow-2xl"
+          className="fixed right-5 bottom-36 z-50 flex w-80 flex-col overflow-hidden rounded-2xl shadow-2xl md:bottom-24"
           style={{ background: "#fff", border: "1px solid #e8e8f0", maxHeight: 480 }}
         >
           {/* Header */}
@@ -227,7 +227,7 @@ export default function SupportWidget() {
           setOpen((v) => !v);
           if (!open) clearUnread();
         }}
-        className="fixed right-5 bottom-5 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-xl transition-transform hover:scale-105 active:scale-95"
+        className="fixed right-5 bottom-20 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-xl transition-transform hover:scale-105 active:scale-95 md:bottom-5"
         style={{ background: "linear-gradient(135deg,#6C5CE7,#a29bfe)" }}
         aria-label="Support chat"
       >

@@ -3,10 +3,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Button, Drawer, Dropdown, Avatar, Badge, Spin } from "antd";
+import { Button, Drawer, Dropdown, Avatar, Spin } from "antd";
 import {
-  MenuOutlined,
-  CloseOutlined,
   UserOutlined,
   LogoutOutlined,
   DashboardOutlined,
@@ -26,7 +24,6 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -149,12 +146,12 @@ export default function Navbar() {
       }`}
     >
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href="/" className="flex items-center gap-2.5 no-underline">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-bold text-white shadow-lg shadow-indigo-500/30">
+        <Link href="/" className="flex items-center gap-2 no-underline">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-bold text-white shadow-md shadow-indigo-500/30 md:h-9 md:w-9 md:rounded-xl md:text-sm">
             S
           </div>
           <span
-            className={`text-xl font-bold tracking-tight transition-colors ${transparent ? "text-white" : "text-zinc-900"}`}
+            className={`text-[17px] font-bold tracking-tight transition-colors md:text-xl ${transparent ? "text-white" : "text-zinc-900"}`}
           >
             Speak<span className={transparent ? "text-indigo-300" : "gradient-text"}>Easy</span>
           </span>
@@ -227,93 +224,40 @@ export default function Navbar() {
           )}
         </div>
 
-        <div className="block md:hidden">
-          <Button
-            type="text"
-            icon={
-              <MenuOutlined className={`text-lg ${transparent ? "text-white" : "text-zinc-700"}`} />
-            }
-            onClick={() => setMobileOpen(true)}
-          />
+        {/* Mobile right — notification bell + avatar (no hamburger needed, bottom nav handles navigation) */}
+        <div className="flex items-center gap-2 md:hidden">
+          {user && (
+            <button
+              onClick={handleOpenNotifs}
+              className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-all ${transparent ? "text-white/80 hover:bg-white/10 hover:text-white" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"}`}
+            >
+              <BellOutlined style={{ fontSize: 20 }} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </button>
+          )}
+          {user ? (
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={["click"]}>
+              <button className="flex cursor-pointer items-center rounded-full p-0.5 transition-all">
+                <Avatar
+                  size={34}
+                  src={user.avatarUrl}
+                  icon={!user.avatarUrl && <UserOutlined />}
+                  style={{ backgroundColor: "#6366f1" }}
+                />
+              </button>
+            </Dropdown>
+          ) : (
+            <Link href="/register">
+              <Button size="small" type="primary" className="rounded-lg px-4 text-xs font-semibold">
+                Get Started
+              </Button>
+            </Link>
+          )}
         </div>
-
-        <Drawer
-          title={
-            <span className="text-lg font-bold text-zinc-900">
-              Speak<span className="gradient-text">Easy</span>
-            </span>
-          }
-          placement="right"
-          onClose={() => setMobileOpen(false)}
-          open={mobileOpen}
-          closeIcon={<CloseOutlined />}
-          size="default"
-        >
-          <div className="flex flex-col gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className="rounded-lg px-4 py-3 text-sm font-medium text-zinc-700 no-underline hover:bg-zinc-100"
-              >
-                {link.label}
-              </Link>
-            ))}
-            <div className="my-3 border-t border-zinc-200" />
-            {user ? (
-              <>
-                <div className="flex items-center gap-3 px-4 py-2">
-                  <Avatar
-                    size={32}
-                    src={user.avatarUrl}
-                    icon={!user.avatarUrl && <UserOutlined />}
-                    style={{ backgroundColor: "#6366f1" }}
-                  />
-                  <span className="text-sm font-medium text-zinc-700">
-                    {user.name || user.email.split("@")[0]}
-                  </span>
-                </div>
-                <Link
-                  href="/dashboard"
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-lg px-4 py-3 text-sm font-medium text-zinc-700 no-underline hover:bg-zinc-100"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/settings"
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-lg px-4 py-3 text-sm font-medium text-zinc-700 no-underline hover:bg-zinc-100"
-                >
-                  Profile Settings
-                </Link>
-                <button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    handleLogout();
-                  }}
-                  className="rounded-lg px-4 py-3 text-left text-sm font-medium text-red-500 hover:bg-red-50"
-                >
-                  Log Out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link href="/login" onClick={() => setMobileOpen(false)}>
-                  <Button block size="large" className="mb-2">
-                    Log In
-                  </Button>
-                </Link>
-                <Link href="/register" onClick={() => setMobileOpen(false)}>
-                  <Button type="primary" block size="large">
-                    Sign Up Free
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
-        </Drawer>
       </nav>
 
       {/* Notification Drawer */}
